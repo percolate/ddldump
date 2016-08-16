@@ -10,7 +10,8 @@ setup(
     author_email='analogue@glop.org',
     url='https://github.com/percolate/ddldump',
     description='Dump and version the DDLs of your tables',
-    keywords='ddldump ddl dump sql mysql postgresql sqlalchemy mysqldump pg_dump',
+    keywords=('ddldump ddl dump sql mysql postgresql sqlalchemy mysqldump '
+              'pg_dump'),
     license='GPLv3',
     packages=['ddldump'],
     install_requires=['docopt', 'sqlalchemy'],
