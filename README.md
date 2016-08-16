@@ -8,12 +8,19 @@ Dump and version the DDLs of your tables.
 
 ```bash
 ddldump <dsn> [table] > table.sql
+```
 
-# Dump all the table DDLs of a database
-ddldump mysql://localhost/dbname > dbname.sql
+## Example
 
-# Dump a specific PostgreSQL table
-ddldump postgresql://localhost/dbname cool_table > cool_table.sql
+Dump all the table DDLs of the MySQL database `cooldb`:
+
+```
+ddldump mysql://localhost/cooldb > cooldb.sql
+
+Dump the specific DDL of the `awesome` PostgreSQL table:
+
+```bash
+ddldump postgresql://localhost/mydb awesome > awesome.sql
 ```
 
 ## Install
