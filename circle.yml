@@ -1,0 +1,13 @@
+dependencies:
+  override:
+    - gem install mdl
+    - pip install flake8
+
+test:
+  override:
+    - mdl:
+        files:
+          - "**/*.md"
+    - flake8:
+        files:
+          - "**/*.py"
