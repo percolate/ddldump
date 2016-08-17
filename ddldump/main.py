@@ -21,6 +21,7 @@ Options:
 """
 import logging
 import re
+import sys
 
 from docopt import docopt
 import sqlalchemy
@@ -71,7 +72,6 @@ def get_table_ddl(engine, table):
     assert isinstance(engine, sqlalchemy.engine.base.Engine)
     assert isinstance(table, basestring)
 
-    inspector = sqlalchemy.inspect(engine)
     result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
     row = result.first()
     table_ddl = row[1]

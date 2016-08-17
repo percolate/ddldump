@@ -18,6 +18,7 @@ Dump all the table DDLs of the MySQL database `cooldb`:
 
 ```
 ddldump mysql://localhost/cooldb > cooldb.sql
+```
 
 Dump the specific DDL of the `awesome` PostgreSQL table:
 
