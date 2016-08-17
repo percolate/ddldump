@@ -9,7 +9,8 @@ setup(
     author='Laurent Raufaste',
     author_email='analogue@glop.org',
     url='https://github.com/percolate/ddldump',
-    description='Dump and version the DDLs of your tables',
+    description=('Dump a clean version of the DDLs of your tables, so you can '
+                 'version them.'),
     keywords=('ddldump ddl dump sql mysql postgresql sqlalchemy mysqldump '
               'pg_dump'),
     license='GPLv3',
