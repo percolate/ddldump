@@ -134,7 +134,7 @@ def main():
         raw_ddl = get_table_ddl(sqla, table_name)
         logging.debug("Cleaning up %s's DDL", table_name)
         clean_ddl = cleanup_table_ddl(raw_ddl)
-        print "--- Create syntax for TABLE '{}'".format(table_name)
+        print "-- Create syntax for TABLE '{}'".format(table_name)
         print clean_ddl
 
 
