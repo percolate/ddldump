@@ -122,13 +122,20 @@ def main():
     logging.debug("Got those tables: %s", tables)
 
     # Dump each table on stdout
+    first_loop = True
     for table_name in tables:
+        # We want a newline between tables
+        if first_loop:
+            first_loop = False
+        else:
+            print ""
+
         logging.debug("Getting %s's DDL", table_name)
         raw_ddl = get_table_ddl(sqla, table_name)
         logging.debug("Cleaning up %s's DDL", table_name)
         clean_ddl = cleanup_table_ddl(raw_ddl)
+        print "--- Create syntax for TABLE '{}'".format(table_name)
         print clean_ddl
-        print ""
 
 
 if __name__ == "__main__":
