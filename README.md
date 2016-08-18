@@ -26,6 +26,25 @@ Dump the specific DDL of the `awesome` PostgreSQL table:
 ddldump postgresql://localhost/mydb awesome > awesome.sql
 ```
 
+Compare your dump with what's actually in your database:
+
+```bash
+$ ddldump --diff=cooldb.sql mysql://localhost/cooldb
+--- mysql
+
++++ cooldb.sql
+
+@@ -14,7 +14,7 @@
+
+
+ -- Create syntax for TABLE 'user'
+ CREATE TABLE `user` (
+-  `id` bigint(20) unsigned COMMENT 'The user ID',
++  `id` bigint(20) unsigned NOT NULL COMMENT 'The user ID',
+   `name` varchar(64) NOT NULL COMMENT 'The user name',
+   PRIMARY KEY (`id`)
+```
+
 ## Install
 
 ```bash
