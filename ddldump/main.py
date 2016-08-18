@@ -7,6 +7,7 @@ See <https://github.com/percolate/ddldump> for more info
 
 Usage:
     ddldump [options] <DSN> [TABLE]
+    ddldump [options] --diff=<FILE> <DSN> [TABLE]
 
 Arguments:
     DSN   Database connection URL, see
@@ -17,11 +18,17 @@ Arguments:
 Options:
     -h --help       Show this screen.
     -v --verbose    Enable the debugging output.
+    --diff=<FILE>   Compare the tables that exists in the database with the
+                    dump in FILE. If there is a difference, throw an error.
+                    This is useful to check if your database and your dump are
+                    in sync, e.g. during your continuous integration.
 
 """
 import logging
 import re
 import sys
+import difflib
+from urlparse import urlparse
 
 from docopt import docopt
 import sqlalchemy
@@ -105,6 +112,7 @@ def main():
     args = docopt(__doc__, version="ddldump. {}".format(VERSION))
     dsn = args['<DSN>']
     table = args['TABLE']
+    diff_file = args['--diff']
 
     # If asked to be verbose, enable the debug logging
     if args['--verbose']:
@@ -121,6 +129,8 @@ def main():
         tables = [table]
     logging.debug("Got those tables: %s", tables)
 
+    output = ""
+
     # Dump each table on stdout
     first_loop = True
     for table_name in tables:
@@ -128,14 +138,43 @@ def main():
         if first_loop:
             first_loop = False
         else:
-            print ""
+            output += "\n"
 
-        logging.debug("Getting %s's DDL", table_name)
         raw_ddl = get_table_ddl(sqla, table_name)
-        logging.debug("Cleaning up %s's DDL", table_name)
         clean_ddl = cleanup_table_ddl(raw_ddl)
-        print "-- Create syntax for TABLE '{}'".format(table_name)
-        print clean_ddl
+        output += "-- Create syntax for TABLE '{}'".format(table_name)
+        output += "\n"
+        output += "{}".format(clean_ddl)
+        output += "\n"
+
+    if diff_file:
+        # load the content of the given file to diff
+        fh = open(diff_file, 'r')
+        content = fh.read().splitlines()
+        fh.close()
+
+        output = output.splitlines()
+
+        # Get the db type for a pretty diff output
+        parsed = urlparse(dsn)
+        db_type = parsed.scheme
+
+        # Compare it with the current state
+        if content != output:
+            diff_lines = difflib.unified_diff(content,
+                                              output,
+                                              fromfile=diff_file,
+                                              tofile=db_type)
+            for line in diff_lines:
+                print line
+            return 1
+
+    else:
+        # Don't let python add another \n character when printing
+        if output.endswith('\n'):
+            output = output[:-1]
+
+        print output
 
 
 if __name__ == "__main__":
