@@ -79,11 +79,89 @@ def get_table_ddl(engine, table):
     assert isinstance(engine, sqlalchemy.engine.base.Engine)
     assert isinstance(table, basestring)
 
-    result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
-    row = result.first()
-    table_ddl = row[1]
+    table_ddl = None
+
+    if engine.name == 'mysql':
+        result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
+        row = result.first()
+        table_ddl = row[1]
+    else if engine.name == 'postgresql':
+        table_ddl =  _show_create_postgresql()
+    else:
+        # TODO make this an exception?
+        print "ddldump not support the {} dialect.".format(engine.name)
 
     return table_ddl
+
+
+def _show_create_postgresql():
+    ps = subprocess.Popen(['pg_dump',
+                           str(engine.url),
+                           '-t', table,
+                           '--quote-all-identifiers',
+                           '--no-owner',
+                           '--no-privileges',
+                           '--no-acl',
+                           '--no-security-labels',
+                           '--schema-only'],
+                          stdout=subprocess.PIPE)
+
+    table_ddl_details = []
+    raw_output = ps.communicate()[0]
+    start = raw_output[raw_output.find(u'CREATE TABLE'):]
+    table_ddl_create = start[:start.find(";") + 1]
+
+    # Separating the CREATE TABLE statement and the rest of the details
+    # from pg_dump output for better manipulation.
+    raw_output_less_create_table = raw_output.replace(
+        table_ddl_create, ''
+    )
+    # Removing all of the empty space list members.
+    filtered_raw_output_less_create_table = filter(
+        None, raw_output_less_create_table.split('\n')
+    )
+    for op in filtered_raw_output_less_create_table:
+        if not op.startswith(
+                (u'ALTER TABLE ONLY',
+                 u'COPY',
+                 u'SET',
+                 u'\.',
+                 u'--')
+        ) and u'OWNER' not in op:
+            table_ddl_details.append(op)
+
+    # ALTER TABLE ONLY + ADD CONSTRAINT come in two
+    # rows with indentation.
+    # Concatenating into one row.
+    for idx, item in enumerate(table_ddl_details):
+        if u'ADD CONSTRAINT' in item:
+            item = u'ALTER TABLE ONLY "public"."{}" {}'.format(
+                table, item.strip()
+            )
+            table_ddl_details[idx] = item
+
+    table_ddl_details.sort()
+    # need to move SQL statements with PRIMARY KEY to front
+    for sql_statement in table_ddl_details:
+        if u'PRIMARY KEY' in sql_statement:
+            table_ddl_details.insert(
+                0,
+                table_ddl_details.pop(
+                    table_ddl_details.index(sql_statement)
+                )
+            )
+    table_ddl_details_str = "\n".join(table_ddl_details)
+    if len(all_show_creates):
+        all_show_creates += u'\n'
+    all_show_creates += (u'--\n'
+                         u'-- Table structure for table `{}`\n'
+                         u'--\n\n{}\n{}\n'
+                         .format(table,
+                                 table_ddl_create,
+                                 table_ddl_details_str)
+                         )
+
+    return all_show_creates
 
 
 def cleanup_table_ddl(raw_ddl):
