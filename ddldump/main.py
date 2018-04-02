@@ -87,25 +87,26 @@ def get_table_ddl(engine, table):
         row = result.first()
         table_ddl = row[1] + ';'
     elif engine.name == 'postgresql':
-        table_ddl =  _show_create_postgresql(engine, table)
+        table_ddl = _show_create_postgresql(engine, table)
     else:
-        # TODO make this an exception?
         print "ddldump not support the {} dialect.".format(engine.name)
 
     return table_ddl
 
 
 def _show_create_postgresql(engine, table):
-    ps = Popen(['pg_dump',
-                           str(engine.url),
-                           '-t', table,
-                           '--quote-all-identifiers',
-                           '--no-owner',
-                           '--no-privileges',
-                           '--no-acl',
-                           '--no-security-labels',
-                           '--schema-only'],
-                          stdout=PIPE)
+    ps = Popen(
+                    [
+                        'pg_dump',
+                        str(engine.url),
+                        '-t', table,
+                        '--quote-all-identifiers',
+                        '--no-owner',
+                        '--no-privileges',
+                        '--no-acl',
+                        '--no-security-labels',
+                        '--schema-only'],
+                    stdout=PIPE)
 
     table_ddl_details = []
     raw_output = ps.communicate()[0]
@@ -152,10 +153,7 @@ def _show_create_postgresql(engine, table):
                 )
             )
     table_ddl_details_str = "\n".join(table_ddl_details)
-    return (u'{}\n{}'
-                         .format(table_ddl_create,
-                                 table_ddl_details_str)
-                         )
+    return u'{}\n{}'.format(table_ddl_create, table_ddl_details_str)
 
 
 def cleanup_table_ddl(raw_ddl):
@@ -172,9 +170,6 @@ def cleanup_table_ddl(raw_ddl):
 
     # Removing the AUTOINC state from the CREATE TABLE
     clean_ddl = re.sub(' AUTO_INCREMENT=\d+', u'', raw_ddl)
-
-    # Every query should end with a semicolon
-    #clean_ddl += ';'
 
     return clean_ddl
 
