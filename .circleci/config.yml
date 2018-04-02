@@ -1,0 +1,24 @@
+version: 2
+jobs:
+
+  mdl:
+    docker:
+      - image: rsrchboy/mdl
+    steps:
+      - checkout
+      - run: mdl .
+
+  flake8:
+    docker:
+      - image: python:2.7
+    steps:
+      - checkout
+      - run: pip install flake8
+      - run: flake8 ddldump/
+
+workflows:
+  version: 2
+  phaser:
+    jobs:
+      - mdl
+      - flake8
