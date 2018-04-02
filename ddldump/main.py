@@ -28,6 +28,7 @@ import logging
 import re
 import sys
 import difflib
+from subprocess import Popen, PIPE
 from urlparse import urlparse
 
 from docopt import docopt
@@ -84,9 +85,9 @@ def get_table_ddl(engine, table):
     if engine.name == 'mysql':
         result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
         row = result.first()
-        table_ddl = row[1]
-    else if engine.name == 'postgresql':
-        table_ddl =  _show_create_postgresql()
+        table_ddl = row[1] + ';'
+    elif engine.name == 'postgresql':
+        table_ddl =  _show_create_postgresql(engine, table)
     else:
         # TODO make this an exception?
         print "ddldump not support the {} dialect.".format(engine.name)
@@ -94,8 +95,8 @@ def get_table_ddl(engine, table):
     return table_ddl
 
 
-def _show_create_postgresql():
-    ps = subprocess.Popen(['pg_dump',
+def _show_create_postgresql(engine, table):
+    ps = Popen(['pg_dump',
                            str(engine.url),
                            '-t', table,
                            '--quote-all-identifiers',
@@ -104,7 +105,7 @@ def _show_create_postgresql():
                            '--no-acl',
                            '--no-security-labels',
                            '--schema-only'],
-                          stdout=subprocess.PIPE)
+                          stdout=PIPE)
 
     table_ddl_details = []
     raw_output = ps.communicate()[0]
@@ -151,17 +152,10 @@ def _show_create_postgresql():
                 )
             )
     table_ddl_details_str = "\n".join(table_ddl_details)
-    if len(all_show_creates):
-        all_show_creates += u'\n'
-    all_show_creates += (u'--\n'
-                         u'-- Table structure for table `{}`\n'
-                         u'--\n\n{}\n{}\n'
-                         .format(table,
-                                 table_ddl_create,
+    return (u'{}\n{}'
+                         .format(table_ddl_create,
                                  table_ddl_details_str)
                          )
-
-    return all_show_creates
 
 
 def cleanup_table_ddl(raw_ddl):
@@ -180,7 +174,7 @@ def cleanup_table_ddl(raw_ddl):
     clean_ddl = re.sub(' AUTO_INCREMENT=\d+', u'', raw_ddl)
 
     # Every query should end with a semicolon
-    clean_ddl += ';'
+    #clean_ddl += ';'
 
     return clean_ddl
 
