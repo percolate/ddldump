@@ -18,17 +18,17 @@ jobs:
 
   postgres:
     docker:
-      - image: python:2.7
+      #- image: python:2.7
       - image: hashicorp/terraform
       - image: registry.hub.docker.com/library/postgres:9.6.5-alpine
     steps:
       - checkout
       - run:
           command: terraform init
-          working_directory: terraform/rds/
+          working_directory: ci/terraform/
       - run:
           command: terraform apply
-          working_directory: terraform/rds/
+          working_directory: ci/terraform/
       - run: psql -h 127.0.0.1 -U ddldump ddldump < ddldump.sql
       - run: ddldump --diff=ddldump.sql postgresql://ddldump:ddldump@127.0.0.1:5432/ddldump
 
