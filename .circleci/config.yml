@@ -39,7 +39,7 @@ jobs:
           command: terraform plan
           working_directory: ci/terraform/
       - run:
-          command: terraform apply
+          command: yes | terraform apply
           working_directory: ci/terraform/
       - run: psql -h 127.0.0.1 -U ddldump ddldump < ddldump.sql
       - run: ddldump --diff=ddldump.sql postgresql://ddldump:ddldump@127.0.0.1:5432/ddldump
