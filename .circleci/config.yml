@@ -16,6 +16,22 @@ jobs:
       - run: pip install flake8
       - run: flake8 ddldump/
 
+  postgres:
+    docker:
+      - image: hashicorp/terraform
+    steps:
+      - checkout
+      - run:
+          command: terraform init
+          working_directory: terraform/rds/
+          command: terraform apply
+    #steps:
+      - run: psql -h 127.0.0.1 -U ddldump ddldump < ddldump.sql
+      - run: ddldump --diff=ddldump.sql postgresql://ddldump:ddldump@127.0.0.1:5432/ddldump
+
+    #docker:
+    #- image: registry.hub.docker.com/library/postgres:9.6.5-alpine
+
 workflows:
   version: 2
   phaser:
