@@ -16,8 +16,8 @@ resource "postgresql_database" "ddldump-ddldump" {
 
 # Roles
 
-resource "postgresql_role" "ddldump-ddldump_test" {
+resource "postgresql_role" "ddldump-ddldump" {
   provider = "postgresql.ddldump"
-  name     = "ddldump_test"
+  name     = "ddldump"
   login    = true
 }
