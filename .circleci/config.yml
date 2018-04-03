@@ -19,6 +19,7 @@ jobs:
   postgres:
     docker:
       #- image: python:2.7
+      - image: ubuntu:14.04
       - image: hashicorp/terraform
       - image: registry.hub.docker.com/library/postgres:9.6.5-alpine
     steps:
