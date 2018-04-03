@@ -22,6 +22,13 @@ jobs:
       #- image: ubuntu:14.04
       - image: hashicorp/terraform
       - image: registry.hub.docker.com/library/postgres:9.6.5-alpine
+        environment:
+          POSTGRES_USER: ddldump
+          POSTGRES_PASSWORD: ddldump
+          PGUSER: ddldump
+          PGPASSWORD: ddldump
+          PGHOST: 127.0.0.1
+          PGDATABSE: ddldump
     steps:
       - checkout
       - run:
