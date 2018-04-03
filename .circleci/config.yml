@@ -21,7 +21,8 @@ jobs:
       #- image: python:2.7
       #- image: ubuntu:14.04
       - image: hashicorp/terraform
-      - image: registry.hub.docker.com/library/postgres:9.6.5-alpine
+      #- image: registry.hub.docker.com/library/postgres:9.6.5-alpine
+      - image: circleci/postgres:9.6.8-alpine
         environment:
           POSTGRES_USER: ddldump
           POSTGRES_PASSWORD: ddldump
