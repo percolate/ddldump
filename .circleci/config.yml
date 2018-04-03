@@ -27,6 +27,9 @@ jobs:
           command: terraform init
           working_directory: ci/terraform/
       - run:
+          command: terraform plan
+          working_directory: ci/terraform/
+      - run:
           command: terraform apply
           working_directory: ci/terraform/
       - run: psql -h 127.0.0.1 -U ddldump ddldump < ddldump.sql
