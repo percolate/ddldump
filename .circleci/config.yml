@@ -35,18 +35,18 @@ jobs:
           #PGDATABSE: ddldump
     steps:
       - checkout
-      - run:
-          name: Install postgresql-client
-          command: |
-            apt-get update
-            apt-get -y install postgresql-client
+      #- run:
+      #    name: Install postgresql-client
+          #command: |
+            #apt-get update
+            #apt-get -y install postgresql-client
 
 
       - run: psql -h 127.0.0.1 -U postgres < ddldump.sql
       - run: pip install setuptools wheel
       - run: python setup.py bdist_wheel
       - run: pip install dist/*
-      - run: ddldump --diff=ddldump.sql postgresql://ddldump:ddldump@127.0.0.1:5432
+      - run: ddldump --diff=ddldump.sql postgresql://postgres:postgres@127.0.0.1:5432
       #- run:
           #command: terraform init
           #working_directory: ci/terraform/
