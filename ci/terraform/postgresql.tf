@@ -2,8 +2,6 @@ provider "postgresql" {
   alias    = "ddldump"
   host     = "127.0.0.1"
   port     = 5432
-  username = "root"
-  password = "ddldump"
   sslmode  = "disable"
 }
 
@@ -16,8 +14,8 @@ resource "postgresql_database" "ddldump-ddldump" {
 
 # Roles
 
-resource "postgresql_role" "ddldump-ddldump" {
-  provider = "postgresql.ddldump"
-  name     = "ddldump"
-  login    = true
-}
+#resource "postgresql_role" "ddldump-ddldump" {
+  #provider = "postgresql.ddldump"
+  #name     = "ddldump"
+  #login    = true
+#}
