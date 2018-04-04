@@ -30,6 +30,7 @@ jobs:
           #PGPASSWORD: ddldump
           #PGHOST: 127.0.0.1
           #PGDATABSE: ddldump
+      - image: ubuntu:14.04
     steps:
       - checkout
       - run: sudo apt install postgresql-client
