@@ -2,7 +2,7 @@ provider "postgresql" {
   alias    = "ddldump"
   host     = "127.0.0.1"
   port     = 5432
-  username = "ddldump"
+  username = "root"
   password = "ddldump"
   sslmode  = "disable"
 }
