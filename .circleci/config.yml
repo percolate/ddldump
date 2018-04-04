@@ -21,7 +21,7 @@ jobs:
       #- image: ubuntu:14.04
       #- image: hashicorp/terraform
       #- image: registry.hub.docker.com/library/postgres:9.6.5-alpine
-      - image: ubuntu:14.04
+      #- image: ubuntu:14.04
       #- image: circleci/python:2.7.14
       - image: python:2.7
       - image: circleci/postgres:9.6.8-alpine
