@@ -27,7 +27,7 @@ jobs:
         environment:
           POSTGRES_USER: ddldump
           POSTGRES_PASSWORD: ddldump
-          POSTGRES_DB: ddldump
+          #POSTGRES_DB: ddldump
           #PGUSER: ddldump
           #PGPASSWORD: ddldump
           #PGHOST: 127.0.0.1
@@ -41,8 +41,8 @@ jobs:
             apt-get -y install postgresql-client
 
 
-      - run: psql -h 127.0.0.1 -U ddldump ddldump < ddldump.sql
-      - run: ddldump --diff=ddldump.sql postgresql://ddldump:ddldump@127.0.0.1:5432/ddldump
+      - run: psql -h 127.0.0.1 -U postgres < ddldump.sql
+      - run: ddldump --diff=ddldump.sql postgresql://ddldump:ddldump@127.0.0.1:5432
       #- run:
           #command: terraform init
           #working_directory: ci/terraform/
