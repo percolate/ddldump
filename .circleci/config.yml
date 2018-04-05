@@ -48,7 +48,7 @@ jobs:
           command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
       - run:
           name: Load ddldump schema (with foreign key checks disabled)
-          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat project/ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
+          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
       - run: python setup.py bdist_wheel
       - run: pip install dist/*
       - run: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
