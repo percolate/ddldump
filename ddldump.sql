@@ -1,4 +1,4 @@
--- Create syntax for TABLE `alembic_version`
+-- Create syntax for TABLE 'alembic_version'
 CREATE TABLE "alembic_version" (
     "version_num" character varying(32) NOT NULL
 );
@@ -6,7 +6,7 @@ ALTER TABLE ONLY "public"."alembic_version" ADD CONSTRAINT "version_num_pkey" PR
 COMMENT ON COLUMN "alembic_version"."version_num" IS 'Migration Version number';
 COMMENT ON TABLE "alembic_version" IS 'Track database migration versions.';
 
--- Create syntax for TABLE `ddldump_test`
+-- Create syntax for TABLE 'ddldump_test'
 CREATE TABLE "ddldump_test" (
     "id" bigint NOT NULL,
     "name" character varying(255) NOT NULL,
