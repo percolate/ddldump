@@ -55,3 +55,4 @@ workflows:
       - mdl
       - flake8
       - postgres
+      - mysql
