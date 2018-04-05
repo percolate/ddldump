@@ -45,7 +45,7 @@ jobs:
             apt-get -y install mysql-client
       - run:
           name: Set up "ddldump" database
-          command: mysql -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
+          command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
       - run: mysql -h 127.0.0.1 -uroot ddldump < ddldump_mysql.sql
       - run: python setup.py bdist_wheel
       - run: pip install dist/*
