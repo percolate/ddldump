@@ -18,21 +18,8 @@ jobs:
 
   postgres:
     docker:
-      #- image: ubuntu:14.04
-      #- image: hashicorp/terraform
-      #- image: registry.hub.docker.com/library/postgres:9.6.5-alpine
-      #- image: ubuntu:14.04
-      #- image: circleci/python:2.7.14
       - image: python:2.7.14-stretch
       - image: circleci/postgres:9.6.8-alpine
-        #environment:
-        #  POSTGRES_USER: ddldump
-        #  POSTGRES_PASSWORD: ddldump
-          #POSTGRES_DB: ddldump
-          #PGUSER: ddldump
-          #PGPASSWORD: ddldump
-          #PGHOST: 127.0.0.1
-          #PGDATABSE: ddldump
     steps:
       - checkout
       - run:
@@ -44,15 +31,22 @@ jobs:
       - run: python setup.py bdist_wheel
       - run: pip install dist/*
       - run: ddldump --diff=ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
-      #- run:
-          #command: terraform init
-          #working_directory: ci/terraform/
-      #- run:
-          #command: terraform plan
-          #working_directory: ci/terraform/
-      #- run:
-          #command: yes | terraform apply
-          #working_directory: ci/terraform/
+
+  mysql:
+    docker:
+      - image: python:2.7.14-stretch
+      - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
+    steps:
+      - checkout
+      - run:
+          name: Install mysql-client
+          command: |
+            apt-get update
+            apt-get -y install mysql-client
+      - run: mysql -h 127.0.0.1 < ddldump_mysql.sql
+      - run: python setup.py bdist_wheel
+      - run: pip install dist/*
+      - run: ddldump --diff=ddldump_mysql.sql mysql://mysql:mysql@127.0.0.1:3306
 
 workflows:
   version: 2
