@@ -43,10 +43,13 @@ jobs:
           command: |
             apt-get update
             apt-get -y install mysql-client
-      - run: mysql -h 127.0.0.1 -uroot < ddldump_mysql.sql
+      - run:
+          name: Set up "ddldump" database
+          command: mysql -h 127.0.0.1 -uroot -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
+      - run: mysql -h 127.0.0.1 -uroot ddldump < ddldump_mysql.sql
       - run: python setup.py bdist_wheel
       - run: pip install dist/*
-      - run: ddldump --diff=ddldump_mysql.sql mysql://mysql:mysql@127.0.0.1:3306
+      - run: ddldump --diff=ddldump_mysql.sql mysql://root:@127.0.0.1:3306/ddldump
 
 workflows:
   version: 2
