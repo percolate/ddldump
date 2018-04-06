@@ -89,7 +89,7 @@ def get_table_ddl(engine, table):
     elif engine.name == 'postgresql':
         table_ddl = _show_create_postgresql(engine, table)
     else:
-        print "ddldump not support the {} dialect.".format(engine.name)
+        print "ddldump does not support the {} dialect.".format(engine.name)
 
     return table_ddl
 
