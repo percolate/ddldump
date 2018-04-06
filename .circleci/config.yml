@@ -16,9 +16,62 @@ jobs:
       - run: pip install flake8
       - run: flake8 ddldump/
 
+  postgres:
+    docker:
+      - image: python:2.7.14-stretch
+      - image: circleci/postgres:9.6.8-alpine
+    steps:
+      - checkout
+      - run:
+          name: Install postgresql-client
+          command: |
+            apt-get update
+            apt-get -y install postgresql-client-9.6
+      - run:
+          name: Load ddldump postgres schema
+          command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
+      - run:
+          name: Package the repo into a wheel
+          command: python setup.py bdist_wheel
+      - run:
+          name: Install the newly-packaged wheel
+          command: pip install dist/*
+      - run:
+          name: Run ddldump againt the postgres dumpfile
+          command: ddldump --diff=ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
+
+  mysql:
+    docker:
+      - image: python:2.7.14-stretch
+      - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
+    steps:
+      - checkout
+      - run:
+          name: Install mysql-client
+          command: |
+            apt-get update
+            apt-get -y install mysql-client
+      - run:
+          name: Set up "ddldump" database
+          command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
+      - run:
+          name: Load ddldump mysql schema (with foreign key checks disabled)
+          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
+      - run:
+          name: Package the repo into a wheel
+          command: python setup.py bdist_wheel
+      - run:
+          name: Install the newly-packaged wheel
+          command: pip install dist/*
+      - run:
+          name: Run ddldump against the mysql dumpfile
+          command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
+
 workflows:
   version: 2
   phaser:
     jobs:
       - mdl
       - flake8
+      - postgres
+      - mysql

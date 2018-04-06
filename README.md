@@ -20,7 +20,8 @@ Dump all the table DDLs of the MySQL database `cooldb`:
 ddldump mysql://localhost/cooldb > cooldb.sql
 ```
 
-Dump the specific DDL of the `awesome` PostgreSQL table:
+Dump the specific DDL of the `awesome` PostgreSQL table.
+(requires `postgresql-client`, matching the server version, to be installed):
 
 ```bash
 ddldump postgresql://localhost/mydb awesome > awesome.sql

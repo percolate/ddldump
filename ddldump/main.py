@@ -28,6 +28,7 @@ import logging
 import re
 import sys
 import difflib
+from subprocess import Popen, PIPE
 from urlparse import urlparse
 
 from docopt import docopt
@@ -79,11 +80,80 @@ def get_table_ddl(engine, table):
     assert isinstance(engine, sqlalchemy.engine.base.Engine)
     assert isinstance(table, basestring)
 
-    result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
-    row = result.first()
-    table_ddl = row[1]
+    table_ddl = None
+
+    if engine.name == 'mysql':
+        result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
+        row = result.first()
+        table_ddl = row[1] + ';'
+    elif engine.name == 'postgresql':
+        table_ddl = _show_create_postgresql(engine, table)
+    else:
+        print "ddldump does not support the {} dialect.".format(engine.name)
 
     return table_ddl
+
+
+def _show_create_postgresql(engine, table):
+    ps = Popen(
+                    [
+                        'pg_dump',
+                        str(engine.url),
+                        '-t', table,
+                        '--quote-all-identifiers',
+                        '--no-owner',
+                        '--no-privileges',
+                        '--no-acl',
+                        '--no-security-labels',
+                        '--schema-only'],
+                    stdout=PIPE)
+
+    table_ddl_details = []
+    raw_output = ps.communicate()[0]
+    start = raw_output[raw_output.find(u'CREATE TABLE'):]
+    table_ddl_create = start[:start.find(";") + 1]
+
+    # Separating the CREATE TABLE statement and the rest of the details
+    # from pg_dump output for better manipulation.
+    raw_output_less_create_table = raw_output.replace(
+        table_ddl_create, ''
+    )
+    # Removing all of the empty space list members.
+    filtered_raw_output_less_create_table = filter(
+        None, raw_output_less_create_table.split('\n')
+    )
+    for op in filtered_raw_output_less_create_table:
+        if not op.startswith(
+                (u'ALTER TABLE ONLY',
+                 u'COPY',
+                 u'SET',
+                 u'\.',
+                 u'--')
+        ) and u'OWNER' not in op:
+            table_ddl_details.append(op)
+
+    # ALTER TABLE ONLY + ADD CONSTRAINT come in two
+    # rows with indentation.
+    # Concatenating into one row.
+    for idx, item in enumerate(table_ddl_details):
+        if u'ADD CONSTRAINT' in item:
+            item = u'ALTER TABLE ONLY "public"."{}" {}'.format(
+                table, item.strip()
+            )
+            table_ddl_details[idx] = item
+
+    table_ddl_details.sort()
+    # need to move SQL statements with PRIMARY KEY to front
+    for sql_statement in table_ddl_details:
+        if u'PRIMARY KEY' in sql_statement:
+            table_ddl_details.insert(
+                0,
+                table_ddl_details.pop(
+                    table_ddl_details.index(sql_statement)
+                )
+            )
+    table_ddl_details_str = "\n".join(table_ddl_details)
+    return u'{}\n{}'.format(table_ddl_create, table_ddl_details_str)
 
 
 def cleanup_table_ddl(raw_ddl):
@@ -100,9 +170,6 @@ def cleanup_table_ddl(raw_ddl):
 
     # Removing the AUTOINC state from the CREATE TABLE
     clean_ddl = re.sub(' AUTO_INCREMENT=\d+', u'', raw_ddl)
-
-    # Every query should end with a semicolon
-    clean_ddl += ';'
 
     return clean_ddl
 
