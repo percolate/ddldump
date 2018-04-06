@@ -28,6 +28,14 @@ jobs:
             apt-get update
             apt-get -y install postgresql-client-9.6
       - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+      - run:
+          name: Wait for postgres to come up
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run:
           name: Load ddldump postgres schema
           command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
       - run:
@@ -51,6 +59,14 @@ jobs:
           command: |
             apt-get update
             apt-get -y install mysql-client
+      - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+      - run:
+          name: Wait for mysql to come up
+          command: dockerize -wait tcp://localhost:3306 -timeout 1m
       - run:
           name: Set up "ddldump" database
           command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
