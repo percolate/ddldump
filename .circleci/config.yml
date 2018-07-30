@@ -90,6 +90,7 @@ jobs:
       - checkout
       - run: apk add --no-cache python3 docker
       - setup_remote_docker
+      - run: mkdir -p build/artifacts
       - run: |
           set +o pipefail
           new_version=$(cat VERSION.txt)
@@ -103,7 +104,6 @@ jobs:
   release:
     docker:
       - image: alpine:3.7
-      - image: circleci/python
     steps:
       - attach_workspace:
           at: /tmp/workspace
