@@ -18,7 +18,7 @@ jobs:
 
   postgres:
     docker:
-      - image: python:2.7.14-stretch
+      - image: circleci/python
       - image: circleci/postgres:9.6.8-alpine
     steps:
       - checkout
@@ -125,7 +125,6 @@ workflows:
       - mysql
       - package:
           requires:
-            - postgres
             - mysql
       - release:
           requires:
