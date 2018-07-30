@@ -92,7 +92,7 @@ jobs:
       - setup_remote_docker
       - run: |
           set +o pipefail
-          new_version=$(python -c "from ddldump.constants import VERSION; print VERSION")
+          new_version=$(cat VERSION.txt)
           docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
           docker save -o "build/artifacts/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
       - persist_to_workspace:
