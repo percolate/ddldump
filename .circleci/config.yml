@@ -103,6 +103,7 @@ jobs:
   release:
     docker:
       - image: alpine:3.7
+    steps:
       - attach_workspace:
           at: /tmp/workspace
       - setup_remote_docker
