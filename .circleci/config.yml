@@ -103,6 +103,7 @@ jobs:
   release:
     docker:
       - image: alpine:3.7
+      - image: circleci/python
     steps:
       - attach_workspace:
           at: /tmp/workspace
