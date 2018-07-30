@@ -15,18 +15,9 @@ RUN apt-get update; \
     rm -rf /var/lib/apt/lists/*
 
 
-ENV PYTHON_PIP_VERSION="18.0" \
-    DDLDUMP_VERSION="0.3"
+ENV DDLDUMP_VERSION="0.3"
 
 
 RUN set -eux; \
     python3 -m ensurepip; \
-    pip3 install "pip==${PYTHON_PIP_VERSION}"; \
-    pip3 install -U "ddldump==${DDLDUMP_VERSION}"
-
-##
-## Switch back to inherited settings
-##
-
-USER circleci
-WORKDIR /home/circleci
+    pip3 install -U "ddldump>=${DDLDUMP_VERSION}"
