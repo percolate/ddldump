@@ -122,11 +122,11 @@ workflows:
       - flake8
       - postgres
       - mysql
-      - package
+      - package:
           requires:
             - postgres
             - mysql
-      - release
+      - release:
           requires:
             - package
           filters:
