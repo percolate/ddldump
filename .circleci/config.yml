@@ -16,34 +16,44 @@ jobs:
       - run: pip install flake8
       - run: flake8 ddldump/
 
+  package:
+    docker:
+      - image: alpine:3.7
+    steps:
+      - checkout
+      - run: apk add --no-cache python3 docker
+      - setup_remote_docker
+      - run: mkdir -p build/artifacts
+      - run: |
+          set +o pipefail
+          new_version=$(cat VERSION.txt)
+          docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
+          docker save -o "build/artifacts/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
+      - persist_to_workspace:
+          root: build
+          paths:
+            - artifacts
+
   postgres:
     docker:
       - image: circleci/python
       - image: circleci/postgres:9.6.8-alpine
     steps:
-      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup_remote_docker
       - run:
-          name: Install postgresql-client
+          name: Deploy ddldump image
           command: |
-            apt-get update
-            apt-get -y install postgresql-client-9.6
-      - run:
-          name: install dockerize
-          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          environment:
-            DOCKERIZE_VERSION: v0.3.0
+            new_version=$(cat VERSION.txt)
+            docker load -i "tmp/workspace/ddldump-${new_version}.tar"
+            docker run "prclt/ddldump:${new_version}"
       - run:
           name: Wait for postgres to come up
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run:
           name: Load ddldump postgres schema
           command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
-      - run:
-          name: Package the repo into a wheel
-          command: python setup.py bdist_wheel
-      - run:
-          name: Install the newly-packaged wheel
-          command: pip install dist/*
       - run:
           name: Run ddldump againt the postgres dumpfile
           command: ddldump --diff=ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
@@ -83,24 +93,6 @@ jobs:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
 
-  package:
-    docker:
-      - image: alpine:3.7
-    steps:
-      - checkout
-      - run: apk add --no-cache python3 docker
-      - setup_remote_docker
-      - run: mkdir -p build/artifacts
-      - run: |
-          set +o pipefail
-          new_version=$(cat VERSION.txt)
-          docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
-          docker save -o "build/artifacts/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
-      - persist_to_workspace:
-          root: build
-          paths:
-            - artifacts
-
   release:
     docker:
       - image: alpine:3.7
@@ -122,14 +114,17 @@ workflows:
     jobs:
       - mdl
       - flake8
-      - postgres
-      - mysql
-      - package:
-          requires:
-            - mysql
-      - release:
+      - package
+      - postgres:
           requires:
             - package
+      - mysql:
+          requires:
+            - package
+      - release:
+          requires:
+            - mysql
+            - postgres
           filters:
             branches:
               only: master

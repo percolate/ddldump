@@ -15,9 +15,11 @@ RUN apt-get update; \
     rm -rf /var/lib/apt/lists/*
 
 
-ENV DDLDUMP_VERSION="0.3"
+COPY ddldump /ddldump
+COPY setup.* /
 
 
 RUN set -eux; \
+    python setup.py bdist_wheel; \
     python3 -m ensurepip; \
-    pip3 install -U "ddldump>=${DDLDUMP_VERSION}"
+    pip3 install -U /dist/*
