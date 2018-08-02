@@ -28,11 +28,12 @@ jobs:
           set +o pipefail
           new_version=$(cat VERSION.txt)
           docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
-          docker save -o "build/artifacts/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
+          docker save -o "build/image/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
+    - run: cp VERSION.txt build/
       - persist_to_workspace:
           root: build
           paths:
-            - artifacts
+            - image
 
   postgres:
     docker:
@@ -45,8 +46,8 @@ jobs:
       - run:
           name: Deploy ddldump image
           command: |
-            new_version=$(cat VERSION.txt)
-            docker load -i "tmp/workspace/ddldump-${new_version}.tar"
+            new_version=$(cat /tmp/workspace/VERSION.txt)
+            docker load -i "tmp/workspace/image/ddldump-${new_version}.tar"
             docker run "prclt/ddldump:${new_version}"
       - run:
           name: Wait for postgres to come up
