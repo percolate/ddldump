@@ -23,12 +23,12 @@ jobs:
       - checkout
       - run: apk add --no-cache python3 docker
       - setup_remote_docker
-      - run: mkdir -p build/artifacts
+      - run: mkdir -p build/docker_image
       - run: |
           set +o pipefail
           new_version=$(cat VERSION.txt)
           docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
-          docker save -o "build/image/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
+          docker save -o "build/docker_image/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
       - run: cp VERSION.txt build/
       - persist_to_workspace:
           root: build
@@ -47,7 +47,7 @@ jobs:
           name: Deploy ddldump image
           command: |
             new_version=$(cat /tmp/workspace/VERSION.txt)
-            docker load -i "tmp/workspace/image/ddldump-${new_version}.tar"
+            docker load -i "tmp/workspace/docker_image/ddldump-${new_version}.tar"
             docker run "prclt/ddldump:${new_version}"
       - run:
           name: Wait for postgres to come up
