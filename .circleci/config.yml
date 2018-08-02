@@ -30,11 +30,14 @@ jobs:
           docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
           docker save -o "build/docker_image/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
       - run: cp VERSION.txt build/
+      - run: cp ddldump_postgres.sql build/
+      - run: cp ddldump_mysql.sql build/
       - persist_to_workspace:
           root: build
           paths:
             - docker_image
             - VERSION.txt
+            - ddldump_*.sql
 
   postgres:
     docker:
@@ -55,10 +58,10 @@ jobs:
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run:
           name: Load ddldump postgres schema
-          command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
+          command: psql -h 127.0.0.1 -U postgres < /tmp/workspace/ddldump_postgres.sql
       - run:
           name: Run ddldump againt the postgres dumpfile
-          command: ddldump --diff=ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
+          command: ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
 
   mysql:
     docker:
