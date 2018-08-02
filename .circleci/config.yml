@@ -34,6 +34,7 @@ jobs:
           root: build
           paths:
             - docker_image
+            - VERSION.txt
 
   postgres:
     docker:
