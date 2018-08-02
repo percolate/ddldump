@@ -106,7 +106,7 @@ jobs:
           name: Deploy ddldump image
           command: |
             new_version=$(cat VERSION.txt)
-            docker load -i "tmp/workspace/ddldump-${new_version}.tar"
+            docker load -i "/tmp/workspace/ddldump-${new_version}.tar"
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             docker push "prclt/ddldump:${new_version}"
 

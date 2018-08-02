@@ -35,7 +35,7 @@ jobs:
       - run:
           name: Load mysql schema (with foreign key checks disabled)
           command: |
-            ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat <path/to/mysql/dumpfile.sql> )
+            (echo "SET FOREIGN_KEY_CHECKS=0; "; cat <path/to/mysql/dumpfile.sql>)
             mysql -h 127.0.0.1 <db_name>
       - run:
           name: Run ddldump against the mysql <dumpfile.sql>
