@@ -48,7 +48,7 @@ jobs:
           name: Deploy ddldump image
           command: |
             new_version=$(cat /tmp/workspace/VERSION.txt)
-            docker load -i "tmp/workspace/docker_image/ddldump-${new_version}.tar"
+            docker load -i "/tmp/workspace/docker_image/ddldump-${new_version}.tar"
             docker run "prclt/ddldump:${new_version}"
       - run:
           name: Wait for postgres to come up
