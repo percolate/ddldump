@@ -48,20 +48,22 @@ jobs:
           at: /tmp/workspace
       - setup_remote_docker
       - run:
+          name: Wait for postgres to come up
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run:
           name: Deploy ddldump image
           command: |
             new_version=$(cat /tmp/workspace/VERSION.txt)
             docker load -i "/tmp/workspace/docker_image/ddldump-${new_version}.tar"
             docker run -d --name ddl "prclt/ddldump:${new_version}"
-      - run:
-          name: Wait for postgres to come up
-          command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      - run:
-          name: Load ddldump postgres schema
-          command: docker exec -i ddl psql -h 127.0.0.1 -U postgres < /tmp/workspace/ddldump_postgres.sql
-      - run:
-          name: Run ddldump againt the postgres dumpfile
-          command: docker exec -i ddl ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
+            docker exec -i ddl psql -h 127.0.0.1 -U postgres < /tmp/workspace/ddldump_postgres.sql
+            docker exec -i ddl ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
+      #- run:
+          #name: Load ddldump postgres schema
+          #command: 
+      #- run:
+          #name: Run ddldump againt the postgres dumpfile
+          #command: 
 
   mysql:
     docker:
