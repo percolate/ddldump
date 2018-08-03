@@ -52,16 +52,16 @@ jobs:
           command: |
             new_version=$(cat /tmp/workspace/VERSION.txt)
             docker load -i "/tmp/workspace/docker_image/ddldump-${new_version}.tar"
-            docker run "prclt/ddldump:${new_version}"
+            docker run --name ddl "prclt/ddldump:${new_version}"
       - run:
           name: Wait for postgres to come up
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run:
           name: Load ddldump postgres schema
-          command: psql -h 127.0.0.1 -U postgres < /tmp/workspace/ddldump_postgres.sql
+          command: docker exec -it ddl psql -h 127.0.0.1 -U postgres < /tmp/workspace/ddldump_postgres.sql
       - run:
           name: Run ddldump againt the postgres dumpfile
-          command: ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
+          command: docker exec -it ddl ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
 
   mysql:
     docker:
