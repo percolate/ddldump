@@ -23,3 +23,5 @@ RUN set -eux; \
     python setup.py bdist_wheel; \
     python3 -m ensurepip; \
     pip3 install -U /dist/*
+
+ENTRYPOINT ["ddldump"]
