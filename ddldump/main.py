@@ -233,7 +233,7 @@ def main():
                                               fromfile=diff_file,
                                               tofile=db_type)
             for line in diff_lines:
-                print line
+                print(line)
             return 1
 
     else:
@@ -241,7 +241,7 @@ def main():
         if output.endswith('\n'):
             output = output[:-1]
 
-        print output
+        print(output)
 
 
 if __name__ == "__main__":
