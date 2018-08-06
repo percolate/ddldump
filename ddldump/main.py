@@ -82,9 +82,6 @@ def get_table_ddl(engine, table):
 
     table_ddl = None
 
-    print engine
-    print engine.name
-    print "sksks {} sksk".format("abc")
     if engine.name == 'mysql':
         result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
         row = result.first()
@@ -92,7 +89,7 @@ def get_table_ddl(engine, table):
     elif engine.name == 'postgresql':
         table_ddl = _show_create_postgresql(engine, table)
     else:
-        print "ddldump does not support the {} dialect.".format(engine.name)
+        print ("ddldump does not support the {} dialect.".format(engine.name))
 
     return table_ddl
 
