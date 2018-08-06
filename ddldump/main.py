@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """ddldump
 Dump a clean version of the DDLs of your tables, so you can version them.
 
@@ -24,15 +25,15 @@ Options:
                     in sync, e.g. during your continuous integration.
 
 """
+
 from future.standard_library import install_aliases
-install_aliases()
+install_aliases()  # noqa: E402
 
 import logging
 import re
 import sys
 import difflib
 from subprocess import Popen, PIPE
-#from urlparse import urlparse
 from urllib.parse import urlparse
 
 from docopt import docopt

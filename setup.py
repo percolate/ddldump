@@ -15,7 +15,7 @@ setup(
               'pg_dump'),
     license='GPLv3',
     packages=['ddldump'],
-    install_requires=['docopt', 'sqlalchemy', 'psycopg2', 'mysqlclient'],
+    install_requires=['docopt', 'sqlalchemy', 'psycopg2', 'mysqlclient', 'future'],
     entry_points={
         'console_scripts': [
             'ddldump=ddldump.main:main',
@@ -29,7 +29,7 @@ setup(
          'GNU General Public License v3 or later (GPLv3+)'),
         'Natural Language :: English',
         'Operating System :: POSIX',
-        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
         'Topic :: Utilities',
     ],
 )
