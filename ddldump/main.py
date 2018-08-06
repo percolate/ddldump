@@ -82,6 +82,9 @@ def get_table_ddl(engine, table):
 
     table_ddl = None
 
+    print engine
+    print engine.name
+    print "sksks {} sksk".format("abc")
     if engine.name == 'mysql':
         result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
         row = result.first()
