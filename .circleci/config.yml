@@ -56,8 +56,8 @@ jobs:
           command: |
             new_version=$(cat /tmp/workspace/VERSION.txt)
             docker load -i "/tmp/workspace/docker_image/ddldump-${new_version}.tar"
-            docker run --network=container:circleci/postgres "prclt/ddldump:${new_version}" ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@localhost:5432
-            docker run --network=container:circleci/postgres "prclt/ddldump:${new_version}" psql -h localhost U postgres < /tmp/workspace/ddldump_postgres.sql
+            docker run --network="host" "prclt/ddldump:${new_version}" psql -h localhost U postgres < /tmp/workspace/ddldump_postgres.sql
+            docker run --network="host" "prclt/ddldump:${new_version}" ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@localhost:5432
       #- run:
           #name: Load ddldump postgres schema
           #command: 
