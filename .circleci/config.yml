@@ -16,61 +16,124 @@ jobs:
       - run: pip install flake8
       - run: flake8 ddldump/
 
-  package:
+  build_wheel:
     docker:
-      - image: alpine:3.7
+      - image: circleci/python
     steps:
       - checkout
-      - run: apk add --no-cache python3 docker
-      - setup_remote_docker
-      - run: mkdir -p build/docker_image
-      - run: |
-          set +o pipefail
-          new_version=$(cat VERSION.txt)
-          docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
-          docker save -o "build/docker_image/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
-      - run: cp VERSION.txt build/
-      - run: cp ddldump_postgres.sql build/
-      - run: cp ddldump_mysql.sql build/
+      - run: mkdir -p build/dist
+      - run:
+          name: Package the repo into a wheel
+          command: python setup.py bdist_wheel --dist-dir build/dist/
+      - run: cp ddldump_*.sql build/
+      #- run: cp VERSION.txt build/
+      #- run: cp ddldump_mysql.sql build/
       - persist_to_workspace:
           root: build
           paths:
-            - docker_image
-            - VERSION.txt
+            - dist
+            #- VERSION.txt
             - ddldump_*.sql
 
-  postgres:
+  postgres_python3:
     docker:
       - image: circleci/python
       - image: circleci/postgres
-      #- image: circleci/postgres:9.6.8-alpine
     steps:
       - attach_workspace:
           at: /tmp/workspace
-      - setup_remote_docker
+      - run:
+          name: Install postgresql-client
+          command: |
+            apt-get update
+            apt-get -y install postgresql-client-9.6
+      - run:
+          name: Install the newly-packaged wheel
+          command: |
+            set -eux
+            python3 -m ensurepip
+            pip3 install /tmp/workspace/dist/*
       - run:
           name: Wait for postgres to come up
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run:
-          name: Deploy ddldump image
-          command: |
-            new_version=$(cat /tmp/workspace/VERSION.txt)
-            docker load -i "/tmp/workspace/docker_image/ddldump-${new_version}.tar"
-            docker run --network="host" "prclt/ddldump:${new_version}" psql -h localhost U postgres < /tmp/workspace/ddldump_postgres.sql
-            docker run --network="host" "prclt/ddldump:${new_version}" ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@localhost:5432
-      #- run:
-          #name: Load ddldump postgres schema
-          #command: 
-      #- run:
-          #name: Run ddldump againt the postgres dumpfile
-          #command: 
+          name: Load ddldump postgres schema
+          command: psql -h 127.0.0.1 -U postgres < /tmp/workspace/ddldump_postgres.sql
+      - run:
+          name: Run ddldump againt the postgres dumpfile
+          command: ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
 
-  mysql:
+  postgres_python2.7:
+    docker:
+      - image: python:2.7.14-stretch
+      - image: circleci/postgres:9.6.8-alpine
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Install postgresql-client
+          command: |
+            apt-get update
+            apt-get -y install postgresql-client-9.6
+      - run:
+          name: Install the newly-packaged wheel
+          command: |
+            set -eux
+            python3 -m ensurepip
+            pip3 install /tmp/workspace/dist/*
+      - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+      - run:
+          name: Wait for postgres to come up
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run:
+          name: Load ddldump postgres schema
+          command: psql -h 127.0.0.1 -U postgres < /tmp/workspace/ddldump_postgres.sql
+      - run:
+          name: Run ddldump againt the postgres dumpfile
+          command: ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
+
+  mysql_python3:
+    docker:
+      - image: circleci/python
+      - image: circleci/mysql
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Install mysql-client
+          command: |
+            apt-get update
+            apt-get -y install mysql-client
+      - run:
+          name: Wait for mysql to come up
+          command: dockerize -wait tcp://localhost:3306 -timeout 1m
+      - run:
+          name: Set up "ddldump" database
+          command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
+      - run:
+          name: Load ddldump mysql schema (with foreign key checks disabled)
+          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat /tmp/workspace/ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
+      - run:
+          name: Install the newly-packaged wheel
+          command: |
+            set -eux
+            python3 -m ensurepip
+            pip3 install /tmp/workspace/dist/*
+      - run:
+          name: Run ddldump against the mysql dumpfile
+          command: ddldump --diff=/tmp/workspace/ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
+
+  mysql_python2.7:
     docker:
       - image: python:2.7.14-stretch
       - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
     steps:
-      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
       - run:
           name: Install mysql-client
           command: |
@@ -89,31 +152,13 @@ jobs:
           command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
       - run:
           name: Load ddldump mysql schema (with foreign key checks disabled)
-          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
-      - run:
-          name: Package the repo into a wheel
-          command: python setup.py bdist_wheel
+          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat /tmp/workspace/ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
       - run:
           name: Install the newly-packaged wheel
-          command: pip install dist/*
+          command: pip install /tmp/workspace/dist/*
       - run:
           name: Run ddldump against the mysql dumpfile
-          command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
-
-  release:
-    docker:
-      - image: alpine:3.7
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - setup_remote_docker
-      - run:
-          name: Deploy ddldump image
-          command: |
-            new_version=$(cat VERSION.txt)
-            docker load -i "/tmp/workspace/ddldump-${new_version}.tar"
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
-            docker push "prclt/ddldump:${new_version}"
+          command: ddldump --diff=/tmp/workspace/ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
 
 workflows:
   version: 2
@@ -121,17 +166,16 @@ workflows:
     jobs:
       - mdl
       - flake8
-      - package
-      - postgres:
+      - build_wheel
+      - postgres_python3:
           requires:
-            - package
-      - mysql:
+            - build_wheel
+      - postgres_python2.7:
           requires:
-            - package
-      - release:
+            - build_wheel
+      - mysql_python3:
           requires:
-            - mysql
-            - postgres
-          filters:
-            branches:
-              only: master
+            - build_wheel
+      - mysql_python2.7:
+          requires:
+            - build_wheel
