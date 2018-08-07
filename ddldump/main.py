@@ -26,6 +26,7 @@ Options:
 
 """
 
+from __future__ import absolute_import, print_function
 from future.standard_library import install_aliases
 install_aliases()  # noqa: E402
 
@@ -39,7 +40,7 @@ from urllib.parse import urlparse
 from docopt import docopt
 import sqlalchemy
 
-from constants import VERSION
+from ddldump.constants import VERSION
 
 
 def get_db_connection(url):
