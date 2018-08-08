@@ -45,8 +45,8 @@ jobs:
       - run:
           name: Install postgresql-client
           command: |
-            apt-get update
-            apt-get -y install postgresql-client-9.6
+            sudo apt-get update
+            sudo apt-get -y install postgresql-client-9.6
       - run:
           name: Install the newly-packaged wheel
           command: |
@@ -65,7 +65,7 @@ jobs:
 
   postgres_python2.7:
     docker:
-      - image: circleci/python:2.7-stretch
+      - image: circleci/python:2.7
       - image: circleci/postgres:9.6.8-alpine
     steps:
       - attach_workspace:
@@ -73,8 +73,8 @@ jobs:
       - run:
           name: Install postgresql-client
           command: |
-            apt-get update
-            apt-get -y install postgresql-client-9.6
+            sudo apt-get update
+            sudo apt-get -y install postgresql-client-9.6
       - run:
           name: Install the newly-packaged wheel
           command: pip install /tmp/workspace/dist/*
@@ -95,7 +95,7 @@ jobs:
 
   mysql_python3.7:
     docker:
-      - image: circleci/python:3.7-stretch
+      - image: circleci/python:3.7
       - image: circleci/mysql
     steps:
       - attach_workspace:
@@ -103,8 +103,8 @@ jobs:
       - run:
           name: Install mysql-client
           command: |
-            apt-get update
-            apt-get -y install mysql-client
+            sudo apt-get update
+            sudo apt-get -y install mysql-client
       - run:
           name: Wait for mysql to come up
           command: dockerize -wait tcp://localhost:3306 -timeout 1m
@@ -126,7 +126,7 @@ jobs:
 
   mysql_python2.7:
     docker:
-      - image: circleci/python:2.7-stretch
+      - image: circleci/python:2.7
       - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
     steps:
       - attach_workspace:
@@ -134,8 +134,8 @@ jobs:
       - run:
           name: Install mysql-client
           command: |
-            apt-get update
-            apt-get -y install mysql-client
+            sudo apt-get update
+            sudo apt-get -y install mysql-client
       - run:
           name: install dockerize
           command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
