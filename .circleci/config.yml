@@ -35,9 +35,9 @@ jobs:
             #- VERSION.txt
             - ddldump_*.sql
 
-  postgres_python3:
+  postgres_python3.7:
     docker:
-      - image: circleci/python
+      - image: circleci/python:3.7-stretch
       - image: circleci/postgres
     steps:
       - attach_workspace:
@@ -65,7 +65,7 @@ jobs:
 
   postgres_python2.7:
     docker:
-      - image: python:2.7.14-stretch
+      - image: circleci/python:2.7-stretch
       - image: circleci/postgres:9.6.8-alpine
     steps:
       - attach_workspace:
@@ -77,10 +77,7 @@ jobs:
             apt-get -y install postgresql-client-9.6
       - run:
           name: Install the newly-packaged wheel
-          command: |
-            set -eux
-            python3 -m ensurepip
-            pip3 install /tmp/workspace/dist/*
+          command: pip install /tmp/workspace/dist/*
       - run:
           name: install dockerize
           command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
@@ -96,9 +93,9 @@ jobs:
           name: Run ddldump againt the postgres dumpfile
           command: ddldump --diff=/tmp/workspace/ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
 
-  mysql_python3:
+  mysql_python3.7:
     docker:
-      - image: circleci/python
+      - image: circleci/python:3.7-stretch
       - image: circleci/mysql
     steps:
       - attach_workspace:
@@ -129,7 +126,7 @@ jobs:
 
   mysql_python2.7:
     docker:
-      - image: python:2.7.14-stretch
+      - image: circleci/python:2.7-stretch
       - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
     steps:
       - attach_workspace:
@@ -160,6 +157,19 @@ jobs:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=/tmp/workspace/ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
 
+  build_docker_image:
+    docker:
+      - image: alpine:3.7
+    steps:
+      - checkout
+      - run: apk add --no-cache python3 docker
+      - setup_remote_docker
+      - run: |
+          set +o pipefail
+          new_version=$(cat VERSION.txt)
+          docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
+
+
 workflows:
   version: 2
   phaser:
@@ -167,13 +177,14 @@ workflows:
       - mdl
       - flake8
       - build_wheel
-      - postgres_python3:
+      - build_docker_image
+      - postgres_python3.7:
           requires:
             - build_wheel
       - postgres_python2.7:
           requires:
             - build_wheel
-      - mysql_python3:
+      - mysql_python3.7:
           requires:
             - build_wheel
       - mysql_python2.7:
