@@ -127,7 +127,7 @@ def _show_create_postgresql(engine, table):
                 (u'ALTER TABLE ONLY',
                  u'COPY',
                  u'SET',
-                 u'\.',
+                 r'\.',
                  u'--')
         ) and u'OWNER' not in op:
             table_ddl_details.append(op)
@@ -169,7 +169,7 @@ def cleanup_table_ddl(raw_ddl):
     assert isinstance(raw_ddl, basestring)
 
     # Removing the AUTOINC state from the CREATE TABLE
-    clean_ddl = re.sub(' AUTO_INCREMENT=\d+', u'', raw_ddl)
+    clean_ddl = re.sub(r' AUTO_INCREMENT=\d+', u'', raw_ddl)
 
     return clean_ddl
 
