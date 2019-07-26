@@ -127,7 +127,7 @@ def _show_create_postgresql(engine, table):
                 (u'ALTER TABLE ONLY',
                  u'COPY',
                  u'SET',
-                 u'\.',
+                 r'\.',
                  u'--')
         ) and u'OWNER' not in op:
             table_ddl_details.append(op)
