@@ -158,8 +158,9 @@ def _show_create_postgresql(engine, table):
 
 def sort_table_keys(raw_ddl):
     """
-    Sort the lines of the raw table DDL beginning with KEY, so that no matter what order the
-    keys were added in, the resulting DDL outputs are identical.
+    Sort the lines of the raw table DDL beginning with KEY, so that no matter
+    what order the keys were added in, the resulting DDL outputs are
+    identical.
 
     Args:
         raw_ddl (basestring)
@@ -195,7 +196,7 @@ def cleanup_table_ddl(raw_ddl):
     key_sorted_ddl = sort_table_keys(raw_ddl)
 
     # Removing the AUTOINC state from the CREATE TABLE
-    clean_ddl = re.sub(" AUTO_INCREMENT=\d+", u"", key_sorted_ddl)
+    clean_ddl = re.sub(r" AUTO_INCREMENT=\d+", u"", key_sorted_ddl)
 
     return clean_ddl
 
