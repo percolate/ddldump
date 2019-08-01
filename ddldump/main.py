@@ -169,7 +169,11 @@ def sort_table_keys(raw_ddl):
         basestring
     """
     lines = raw_ddl.split("\n")
-    key_lines = [(l, i) for i, l in enumerate(lines) if l.strip().startswith("KEY")]
+    key_lines = [
+        (l, i)
+        for i, l in enumerate(lines)
+        if l.strip().startswith("KEY")
+    ]
 
     if not key_lines:
         return raw_ddl
@@ -180,7 +184,7 @@ def sort_table_keys(raw_ddl):
         for l, i in key_lines
     ])
 
-    key_line_idxs = set([i for l, i in sorted_key_lines])
+    key_line_idxs = set([i for _, i in sorted_key_lines])
     for i, _ in enumerate(lines):
         if i in key_line_idxs:
             lines[i] = sorted_key_lines.pop(0)[0]
