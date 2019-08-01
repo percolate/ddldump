@@ -169,13 +169,22 @@ def sort_table_keys(raw_ddl):
         basestring
     """
     lines = raw_ddl.split("\n")
+    key_lines = [l for l in lines if l.strip().startswith("KEY")]
+
+    if not key_lines:
+        return raw_ddl
+
+    last_has_comma = key_lines[-1][-1] == ','
     sorted_key_lines = sorted([
-        (l, i) for i, l in enumerate(lines) if l.strip().startswith("KEY")
+        (l if l[-1] != ',' else l[:-1], i)
+        for i, l in enumerate(key_lines)
     ])
     key_line_idxs = set([i for l, i in sorted_key_lines])
     for i, _ in enumerate(lines):
         if i in key_line_idxs:
             lines[i] = sorted_key_lines.pop(0)[0]
+            if sorted_key_lines or last_has_comma:
+                lines[i] += ','
     key_sorted_ddl = "\n".join(lines)
 
     return key_sorted_ddl

@@ -24,7 +24,7 @@ CREATE TABLE `record` (
   `added_on` datetime DEFAULT NULL,
   `type` int(11) NOT NULL COMMENT 'Type of record',
   PRIMARY KEY (`id`),
-  KEY `IDX_record_added_on` (`added_on`)
+  KEY `IDX_record_added_on` (`added_on`),
   KEY `record_type` (`type`),
-  KEY `recordurlsha1html` (`htmlurl_sha1`),
+  KEY `recordurlsha1html` (`htmlurl_sha1`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=COMPRESSED;
