@@ -63,10 +63,24 @@ def get_tables_to_dump(engine):
     assert isinstance(engine, sqlalchemy.engine.base.Engine)
 
     inspector = sqlalchemy.inspect(engine)
+    # must use SHOW TABLES in MySQL, to get list of tables and views
+    # something else in PSQL
     tables = inspector.get_table_names()
 
     return tables
 
+
+def get_procedures(engine):
+    """
+    """
+    # TODO get database name from engine.
+    result = engine.execute("SHOW PROCEDURE STATUS WHERE DB = DATABASE()")
+    # TODO append them into a string
+    for row in result:
+        procedure_result - engine.execute("SHOW CREATE PROCEDURE `{}`").format(row[1])
+        # TODO may want to post-process procedures to eliminate  DEFINER
+        procedures_ddl.append(procedure_result[2])
+    return ",".join(procedures_ddl)
 
 def get_table_ddl(engine, table):
     """
@@ -83,9 +97,21 @@ def get_table_ddl(engine, table):
     table_ddl = None
 
     if engine.name == 'mysql':
+        # TODO if we were to use mysqldump
+        # these are the arguments to use
+        #  --no-create-db --compact --skip-opt --no-data
         result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
         row = result.first()
         table_ddl = row[1] + ';'
+        # TODO: views will require some post-processing. Because they don't have carriage returns
+        # and have ALGORITHM and DEFINER
+        result = engine.execute('SHOW TRIGGERS LIKE `{}`;'.format(table))
+        # TODO this gets all the triggers for the table
+        # TODO should test an after trigger as well a before/after DELETE trigger
+        triggers = result.fetchall() #TODO get only the column
+        for trigger in triggers:
+            table_ddl += trigger[1]
+
     elif engine.name == 'postgresql':
         table_ddl = _show_create_postgresql(engine, table)
     else:

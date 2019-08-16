@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 jobs:
 
   mdl:
@@ -8,6 +8,7 @@ jobs:
       - checkout
       - run: mdl .
 
+  # replace this with pylint or pyfmt
   flake8:
     docker:
       - image: python:2.7
