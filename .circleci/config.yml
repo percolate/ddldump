@@ -83,37 +83,6 @@ jobs:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
 
-  package:
-    docker:
-      - image: alpine:3.7
-    steps:
-      - checkout
-      - run: apk add --no-cache python3 docker
-      - setup_remote_docker
-      - run: |
-          set +o pipefail
-          new_version=$(python -c "from ddldump.constants import VERSION; print VERSION")
-          docker build -t "prclt/ddldump:${new_version}" -f image/Dockerfile .
-          docker save -o "build/artifacts/ddldump-${new_version}.tar" "prclt/ddldump:${new_version}"
-      - persist_to_workspace:
-          root: build
-          paths:
-            - artifacts
-
-  release:
-    docker:
-      - image: alpine:3.7
-      - attach_workspace:
-          at: /tmp/workspace
-      - setup_remote_docker
-      - run:
-          name: Deploy ddldump image
-          command: |
-            new_version=$(cat VERSION.txt)
-            docker load -i "tmp/workspace/ddldump-${new_version}.tar"
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
-            docker push "prclt/ddldump:${new_version}"
-
 workflows:
   version: 2
   phaser:
