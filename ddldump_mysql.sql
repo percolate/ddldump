@@ -28,3 +28,15 @@ CREATE TABLE `record` (
   KEY `record_type` (`type`),
   KEY `recordurlsha1html` (`htmlurl_sha1`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=COMPRESSED;
+
+CREATE OR REPLACE VIEW custom_record_view AS (
+  SELECT
+    c.id,
+    r.id as subject_id,
+  FROM
+    custom_record c
+    INNER JOIN record r ON c.id = r.id
+  WHERE
+    r.type IN ('new', 'in_progress', 'complete')
+    AND c.deleted_at IS NULL
+);
