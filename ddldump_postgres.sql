@@ -16,9 +16,9 @@ CREATE TABLE "public"."custom_record" (
 );
 ALTER TABLE ONLY "public"."custom_record" ADD CONSTRAINT "custom_record_pkey" PRIMARY KEY ("id");
 ALTER TABLE ONLY "public"."custom_record" ADD CONSTRAINT "custom_record_record_fkey" FOREIGN KEY ("id") REFERENCES "public"."record"("id") ON DELETE CASCADE;
-COMMENT ON COLUMN "public"."saved_query"."id" IS 'ID of the custom record.';
-COMMENT ON COLUMN "public"."saved_query"."name" IS 'Name of the custom record.';
-COMMENT ON COLUMN "public"."saved_query"."updated_at" IS 'Time the saved query was last updated. Null if not yet updated.';
+COMMENT ON COLUMN "public"."custom_record"."id" IS 'ID of the custom record.';
+COMMENT ON COLUMN "public"."custom_record"."name" IS 'Name of the custom record.';
+COMMENT ON COLUMN "public"."custom_record"."updated_at" IS 'Time the saved query was last updated. Null if not yet updated.';
 CREATE INDEX "idx_custom_record_updated_at" ON "public"."custom_record" USING "btree" ("updated_at");
 SELECT pg_catalog.set_config('search_path', '', false);
 
@@ -45,11 +45,11 @@ CREATE INDEX "idx_record_parent_id" ON "public"."record" USING "btree" ("parent_
 CREATE INDEX "idx_record_type" ON "public"."record" USING "btree" ("type");
 SELECT pg_catalog.set_config('search_path', '', false);
 
-CREATE OR REPLACE FUNCTION now_utc() RETURNS timestamp AS $$
+CREATE OR REPLACE FUNCTION public.now_utc() RETURNS timestamp AS $$
   SELECT now() AT time zone 'utc';
   $$ LANGUAGE sql;
 
-CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+CREATE OR REPLACE FUNCTION public.trigger_set_timestamp()
   RETURNS TRIGGER
   LANGUAGE plpgsql
 AS $$
@@ -59,23 +59,23 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION trigger_set_timestamp() IS 'Trigger function to update updated_at column on update';
+COMMENT ON FUNCTION public.trigger_set_timestamp() IS 'Trigger function to update updated_at column on update';
 
-DROP TRIGGER IF EXISTS update_timestamp on subscription;
+DROP TRIGGER IF EXISTS update_timestamp on public.custom_record;
 
 CREATE TRIGGER update_timestamp
   BEFORE UPDATE
-  ON custom_record
+  ON public.custom_record
   FOR EACH ROW
-  EXECUTE PROCEDURE trigger_set_timestamp();
+  EXECUTE PROCEDURE public.trigger_set_timestamp();
 
-CREATE OR REPLACE VIEW custom_record_view AS (
+CREATE OR REPLACE VIEW public.custom_record_view AS (
   SELECT
     c.id,
-    r.id as subject_id,
+    r.id as subject_id
   FROM
-    custom_record c
-    INNER JOIN record r ON c.id = r.id
+    public.custom_record c
+    INNER JOIN public.record r ON c.id = r.id
   WHERE
     r.type IN ('new', 'in_progress', 'complete')
     AND c.deleted_at IS NULL
