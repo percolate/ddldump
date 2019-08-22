@@ -83,6 +83,42 @@ jobs:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
 
+  mysqlpython3:
+    docker:
+      - image: ubuntu:19.04
+      - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
+    steps:
+      - checkout
+      - run: apt-get update && apt-get install python3-pip
+      - run:
+          name: Install mysql-client
+          command: |
+            apt-get update
+            apt-get -y install mysql-client
+      - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+      - run:
+          name: Wait for mysql to come up
+          command: dockerize -wait tcp://localhost:3306 -timeout 1m
+      - run:
+          name: Set up "ddldump" database
+          command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
+      - run:
+          name: Load ddldump mysql schema (with foreign key checks disabled)
+          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
+      - run:
+          name: Package the repo into a wheel
+          command: python3 setup.py bdist_wheel
+      - run:
+          name: Install the newly-packaged wheel
+          command: pip3 install dist/*
+      - run:
+          name: Run ddldump against the mysql dumpfile
+          command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
+
 workflows:
   version: 2
   phaser:
@@ -91,3 +127,4 @@ workflows:
       - flake8
       - postgres
       - mysql
+      - mysqlpython3

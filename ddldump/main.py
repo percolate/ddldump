@@ -89,7 +89,7 @@ def get_table_ddl(engine, table):
     elif engine.name == 'postgresql':
         table_ddl = _show_create_postgresql(engine, table)
     else:
-        print "ddldump does not support the {} dialect.".format(engine.name)
+        print("ddldump does not support the {} dialect.".format(engine.name))
 
     return table_ddl
 
@@ -274,7 +274,7 @@ def main():
                                               fromfile=diff_file,
                                               tofile=db_type)
             for line in diff_lines:
-                print line
+                print(line)
             return 1
 
     else:
@@ -282,7 +282,7 @@ def main():
         if output.endswith('\n'):
             output = output[:-1]
 
-        print output
+        print(output)
 
 
 if __name__ == "__main__":
