@@ -29,7 +29,10 @@ import re
 import sys
 import difflib
 from subprocess import Popen, PIPE
-from urlparse import urlparse
+try:
+    from urlparse import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 
 from docopt import docopt
 import sqlalchemy
