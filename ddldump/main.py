@@ -32,12 +32,13 @@ from subprocess import Popen, PIPE
 try:
     from urlparse import urlparse
 except ImportError:
-    import urllib.parse as urlparse
+    from urllib.parse import urlparse
 
 from docopt import docopt
 import sqlalchemy
 
 from ddldump.constants import VERSION
+from past.builtins import basestring
 
 
 def get_db_connection(url):
