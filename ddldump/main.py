@@ -37,7 +37,7 @@ except ImportError:
 from docopt import docopt
 import sqlalchemy
 
-from constants import VERSION
+from ddldump.constants import VERSION
 
 
 def get_db_connection(url):
