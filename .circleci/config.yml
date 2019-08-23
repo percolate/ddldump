@@ -59,7 +59,7 @@ jobs:
           name: Install postgresql-client
           command: |
             apt-get update
-            apt-get -y install postgresql-client-9.6
+            apt-get -y install postgresql-client
       - run:
           name: install dockerize
           command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
