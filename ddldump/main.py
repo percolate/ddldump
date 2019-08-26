@@ -129,7 +129,7 @@ def _show_create_postgresql(engine, table):
                     stdout=PIPE)
 
     table_ddl_details = []
-    # Python 2 - convert bytes to string so we can use the same code between Python 2/3
+    # convert bytes to string so we can use the same code between Python 2/3
     raw_output = str(ps.communicate()[0])
     print(raw_output.find('CREATE TABLE'))
     start = raw_output[raw_output.find('CREATE TABLE'):]
