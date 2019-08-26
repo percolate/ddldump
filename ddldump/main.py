@@ -29,12 +29,16 @@ import re
 import sys
 import difflib
 from subprocess import Popen, PIPE
-from urlparse import urlparse
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 
 from docopt import docopt
 import sqlalchemy
 
-from constants import VERSION
+from ddldump.constants import VERSION
+from past.builtins import basestring
 
 
 def get_db_connection(url):
@@ -89,13 +93,29 @@ def get_table_ddl(engine, table):
     elif engine.name == 'postgresql':
         table_ddl = _show_create_postgresql(engine, table)
     else:
-        print "ddldump does not support the {} dialect.".format(engine.name)
+        print("ddldump does not support the {} dialect.".format(engine.name))
 
     return table_ddl
 
 
 def _show_create_postgresql(engine, table):
-    ps = Popen(
+    try:
+        # Python 3
+        ps = Popen(
+                    [
+                        'pg_dump',
+                        str(engine.url),
+                        '-t', table,
+                        '--quote-all-identifiers',
+                        '--no-owner',
+                        '--no-privileges',
+                        '--no-acl',
+                        '--no-security-labels',
+                        '--schema-only'],
+                    stdout=PIPE, text=True)
+    except TypeError:
+        # Python 2
+        ps = Popen(
                     [
                         'pg_dump',
                         str(engine.url),
@@ -109,9 +129,11 @@ def _show_create_postgresql(engine, table):
                     stdout=PIPE)
 
     table_ddl_details = []
-    raw_output = ps.communicate()[0]
-    start = raw_output[raw_output.find(u'CREATE TABLE'):]
-    table_ddl_create = start[:start.find(";") + 1]
+    # convert bytes to string so we can use the same code between Python 2/3
+    raw_output = str(ps.communicate()[0])
+    print(raw_output.find('CREATE TABLE'))
+    start = raw_output[raw_output.find('CREATE TABLE'):]
+    table_ddl_create = start[:start.find(';') + 1]
 
     # Separating the CREATE TABLE statement and the rest of the details
     # from pg_dump output for better manipulation.
@@ -124,20 +146,20 @@ def _show_create_postgresql(engine, table):
     )
     for op in filtered_raw_output_less_create_table:
         if not op.startswith(
-                (u'ALTER TABLE ONLY',
-                 u'COPY',
-                 u'SET',
+                ('ALTER TABLE ONLY',
+                 'COPY',
+                 'SET',
                  r'\.',
-                 u'--')
-        ) and u'OWNER' not in op:
+                 '--')
+        ) and 'OWNER' not in op:
             table_ddl_details.append(op)
 
     # ALTER TABLE ONLY + ADD CONSTRAINT come in two
     # rows with indentation.
     # Concatenating into one row.
     for idx, item in enumerate(table_ddl_details):
-        if u'ADD CONSTRAINT' in item:
-            item = u'ALTER TABLE ONLY "public"."{}" {}'.format(
+        if 'ADD CONSTRAINT' in item:
+            item = 'ALTER TABLE ONLY "public"."{}" {}'.format(
                 table, item.strip()
             )
             table_ddl_details[idx] = item
@@ -145,7 +167,7 @@ def _show_create_postgresql(engine, table):
     table_ddl_details.sort()
     # need to move SQL statements with PRIMARY KEY to front
     for sql_statement in table_ddl_details:
-        if u'PRIMARY KEY' in sql_statement:
+        if 'PRIMARY KEY' in sql_statement:
             table_ddl_details.insert(
                 0,
                 table_ddl_details.pop(
@@ -153,7 +175,7 @@ def _show_create_postgresql(engine, table):
                 )
             )
     table_ddl_details_str = "\n".join(table_ddl_details)
-    return u'{}\n{}'.format(table_ddl_create, table_ddl_details_str)
+    return '{}\n{}'.format(table_ddl_create, table_ddl_details_str)
 
 
 def sort_table_keys(raw_ddl):
@@ -274,7 +296,7 @@ def main():
                                               fromfile=diff_file,
                                               tofile=db_type)
             for line in diff_lines:
-                print line
+                print(line)
             return 1
 
     else:
@@ -282,7 +304,7 @@ def main():
         if output.endswith('\n'):
             output = output[:-1]
 
-        print output
+        print(output)
 
 
 if __name__ == "__main__":
