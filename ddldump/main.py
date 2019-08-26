@@ -110,39 +110,39 @@ def _show_create_postgresql(engine, table):
                         '--no-acl',
                         '--no-security-labels',
                         '--schema-only'],
-                    stdout=PIPE)
+                    stdout=PIPE, text=True)
 
     table_ddl_details = []
     raw_output = ps.communicate()[0]
-    print(raw_output.find(b'CREATE TABLE'))
-    start = raw_output[raw_output.find(b'CREATE TABLE'):]
-    table_ddl_create = start[:start.find(b';') + 1]
+    print(raw_output.find('CREATE TABLE'))
+    start = raw_output[raw_output.find('CREATE TABLE'):]
+    table_ddl_create = start[:start.find(';') + 1]
 
     # Separating the CREATE TABLE statement and the rest of the details
     # from pg_dump output for better manipulation.
     raw_output_less_create_table = raw_output.replace(
-        table_ddl_create, b''
+        table_ddl_create, ''
     )
     # Removing all of the empty space list members.
     filtered_raw_output_less_create_table = filter(
-        None, raw_output_less_create_table.split(b'\n')
+        None, raw_output_less_create_table.split('\n')
     )
     for op in filtered_raw_output_less_create_table:
         if not op.startswith(
-                (b'ALTER TABLE ONLY',
-                 b'COPY',
-                 b'SET',
+                ('ALTER TABLE ONLY',
+                 'COPY',
+                 'SET',
                  r'\.',
-                 b'--')
-        ) and u'OWNER' not in op:
+                 '--')
+        ) and 'OWNER' not in op:
             table_ddl_details.append(op)
 
     # ALTER TABLE ONLY + ADD CONSTRAINT come in two
     # rows with indentation.
     # Concatenating into one row.
     for idx, item in enumerate(table_ddl_details):
-        if u'ADD CONSTRAINT' in item:
-            item = u'ALTER TABLE ONLY "public"."{}" {}'.format(
+        if 'ADD CONSTRAINT' in item:
+            item = 'ALTER TABLE ONLY "public"."{}" {}'.format(
                 table, item.strip()
             )
             table_ddl_details[idx] = item
@@ -150,7 +150,7 @@ def _show_create_postgresql(engine, table):
     table_ddl_details.sort()
     # need to move SQL statements with PRIMARY KEY to front
     for sql_statement in table_ddl_details:
-        if u'PRIMARY KEY' in sql_statement:
+        if 'PRIMARY KEY' in sql_statement:
             table_ddl_details.insert(
                 0,
                 table_ddl_details.pop(
@@ -158,7 +158,7 @@ def _show_create_postgresql(engine, table):
                 )
             )
     table_ddl_details_str = "\n".join(table_ddl_details)
-    return u'{}\n{}'.format(table_ddl_create, table_ddl_details_str)
+    return '{}\n{}'.format(table_ddl_create, table_ddl_details_str)
 
 
 def sort_table_keys(raw_ddl):
