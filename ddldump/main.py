@@ -113,7 +113,7 @@ def _show_create_postgresql(engine, table):
                     stdout=PIPE)
 
     table_ddl_details = []
-    raw_output = ps.communicate()[0].encode()
+    raw_output = str(ps.communicate()[0])
     print(raw_output.find('CREATE TABLE'))
     start = raw_output[raw_output.find('CREATE TABLE'):]
     table_ddl_create = start[:start.find(';') + 1]
