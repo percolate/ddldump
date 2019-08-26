@@ -125,7 +125,7 @@ def _show_create_postgresql(engine, table):
     )
     # Removing all of the empty space list members.
     filtered_raw_output_less_create_table = filter(
-        None, raw_output_less_create_table.split('\n')
+        None, raw_output_less_create_table.split(b'\n')
     )
     for op in filtered_raw_output_less_create_table:
         if not op.startswith(
