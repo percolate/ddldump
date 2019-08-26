@@ -131,7 +131,6 @@ def _show_create_postgresql(engine, table):
     table_ddl_details = []
     # convert bytes to string so we can use the same code between Python 2/3
     raw_output = str(ps.communicate()[0])
-    print(raw_output.find('CREATE TABLE'))
     start = raw_output[raw_output.find('CREATE TABLE'):]
     table_ddl_create = start[:start.find(';') + 1]
 
