@@ -114,8 +114,8 @@ def _show_create_postgresql(engine, table):
 
     table_ddl_details = []
     raw_output = ps.communicate()[0]
-    print(raw_output.find(u'CREATE TABLE'))
-    start = raw_output[raw_output.find(u'CREATE TABLE'):]
+    print(raw_output.find(b'CREATE TABLE'))
+    start = raw_output[raw_output.find(b'CREATE TABLE'):]
     table_ddl_create = start[:start.find(";") + 1]
 
     # Separating the CREATE TABLE statement and the rest of the details
