@@ -99,7 +99,8 @@ def get_table_ddl(engine, table):
 
 
 def _show_create_postgresql(engine, table):
-    try: 
+    try:
+        # Python 3
         ps = Popen(
                     [
                         'pg_dump',
@@ -112,7 +113,8 @@ def _show_create_postgresql(engine, table):
                         '--no-security-labels',
                         '--schema-only'],
                     stdout=PIPE, text=True)
-    except TypeError: 
+    except TypeError:
+        # Python 2
         ps = Popen(
                     [
                         'pg_dump',
@@ -127,6 +129,7 @@ def _show_create_postgresql(engine, table):
                     stdout=PIPE)
 
     table_ddl_details = []
+    # Python 2 - convert bytes to string so we can use the same code between Python 2/3
     raw_output = str(ps.communicate()[0])
     print(raw_output.find('CREATE TABLE'))
     start = raw_output[raw_output.find('CREATE TABLE'):]
