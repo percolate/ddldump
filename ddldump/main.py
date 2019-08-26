@@ -121,7 +121,7 @@ def _show_create_postgresql(engine, table):
     # Separating the CREATE TABLE statement and the rest of the details
     # from pg_dump output for better manipulation.
     raw_output_less_create_table = raw_output.replace(
-        table_ddl_create, ''
+        table_ddl_create, b''
     )
     # Removing all of the empty space list members.
     filtered_raw_output_less_create_table = filter(
