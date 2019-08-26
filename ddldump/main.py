@@ -99,7 +99,21 @@ def get_table_ddl(engine, table):
 
 
 def _show_create_postgresql(engine, table):
-    ps = Popen(
+    try: 
+        ps = Popen(
+                    [
+                        'pg_dump',
+                        str(engine.url),
+                        '-t', table,
+                        '--quote-all-identifiers',
+                        '--no-owner',
+                        '--no-privileges',
+                        '--no-acl',
+                        '--no-security-labels',
+                        '--schema-only'],
+                    stdout=PIPE, text=True)
+    except TypeError: 
+        ps = Popen(
                     [
                         'pg_dump',
                         str(engine.url),
