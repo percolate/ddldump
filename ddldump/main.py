@@ -129,11 +129,11 @@ def _show_create_postgresql(engine, table):
     )
     for op in filtered_raw_output_less_create_table:
         if not op.startswith(
-                (u'ALTER TABLE ONLY',
-                 u'COPY',
-                 u'SET',
+                (b'ALTER TABLE ONLY',
+                 b'COPY',
+                 b'SET',
                  r'\.',
-                 u'--')
+                 b'--')
         ) and u'OWNER' not in op:
             table_ddl_details.append(op)
 
