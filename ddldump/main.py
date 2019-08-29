@@ -82,6 +82,7 @@ def get_procedures(engine):
         procedures_ddl.append(procedure_result[2])
     return ",".join(procedures_ddl)
 
+
 def get_table_ddl(engine, table):
     """
     Args:
@@ -96,90 +97,83 @@ def get_table_ddl(engine, table):
 
     table_ddl = None
 
-    if engine.name == 'mysql':
+    if engine.name == "mysql":
         # TODO if we were to use mysqldump
         # these are the arguments to use
         #  --no-create-db --compact --skip-opt --no-data
-        result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
+        result = engine.execute("SHOW CREATE TABLE `{}`;".format(table))
         row = result.first()
-        table_ddl = row[1] + ';'
+        table_ddl = row[1] + ";"
         # TODO: views will require some post-processing. Because they don't have carriage returns
         # and have ALGORITHM and DEFINER
-        result = engine.execute('SHOW TRIGGERS LIKE `{}`;'.format(table))
+        result = engine.execute("SHOW TRIGGERS LIKE `{}`;".format(table))
         # TODO this gets all the triggers for the table
         # TODO should test an after trigger as well a before/after DELETE trigger
-        triggers = result.fetchall() #TODO get only the column
+        triggers = result.fetchall()  # TODO get only the column
         for trigger in triggers:
             table_ddl += trigger[1]
 
-    elif engine.name == 'postgresql':
+    elif engine.name == "postgresql":
         table_ddl = _show_create_postgresql(engine, table)
     else:
-        print "ddldump does not support the {} dialect.".format(engine.name)
+        print("ddldump does not support the {} dialect.".format(engine.name))
 
     return table_ddl
 
 
 def _show_create_postgresql(engine, table):
     ps = Popen(
-                    [
-                        'pg_dump',
-                        str(engine.url),
-                        '-t', table,
-                        '--quote-all-identifiers',
-                        '--no-owner',
-                        '--no-privileges',
-                        '--no-acl',
-                        '--no-security-labels',
-                        '--schema-only'],
-                    stdout=PIPE)
+        [
+            "pg_dump",
+            str(engine.url),
+            "-t",
+            table,
+            "--quote-all-identifiers",
+            "--no-owner",
+            "--no-privileges",
+            "--no-acl",
+            "--no-security-labels",
+            "--schema-only",
+        ],
+        stdout=PIPE,
+    )
 
     table_ddl_details = []
     raw_output = ps.communicate()[0]
-    start = raw_output[raw_output.find(u'CREATE TABLE'):]
-    table_ddl_create = start[:start.find(";") + 1]
+    start = raw_output[raw_output.find(u"CREATE TABLE") :]
+    table_ddl_create = start[: start.find(";") + 1]
 
     # Separating the CREATE TABLE statement and the rest of the details
     # from pg_dump output for better manipulation.
-    raw_output_less_create_table = raw_output.replace(
-        table_ddl_create, ''
-    )
+    raw_output_less_create_table = raw_output.replace(table_ddl_create, "")
     # Removing all of the empty space list members.
     filtered_raw_output_less_create_table = filter(
-        None, raw_output_less_create_table.split('\n')
+        None, raw_output_less_create_table.split("\n")
     )
     for op in filtered_raw_output_less_create_table:
-        if not op.startswith(
-                (u'ALTER TABLE ONLY',
-                 u'COPY',
-                 u'SET',
-                 r'\.',
-                 u'--')
-        ) and u'OWNER' not in op:
+        if (
+            not op.startswith((u"ALTER TABLE ONLY", u"COPY", u"SET", r"\.", u"--"))
+            and u"OWNER" not in op
+        ):
             table_ddl_details.append(op)
 
     # ALTER TABLE ONLY + ADD CONSTRAINT come in two
     # rows with indentation.
     # Concatenating into one row.
     for idx, item in enumerate(table_ddl_details):
-        if u'ADD CONSTRAINT' in item:
-            item = u'ALTER TABLE ONLY "public"."{}" {}'.format(
-                table, item.strip()
-            )
+        if u"ADD CONSTRAINT" in item:
+            item = u'ALTER TABLE ONLY "public"."{}" {}'.format(table, item.strip())
             table_ddl_details[idx] = item
 
     table_ddl_details.sort()
     # need to move SQL statements with PRIMARY KEY to front
     for sql_statement in table_ddl_details:
-        if u'PRIMARY KEY' in sql_statement:
+        if u"PRIMARY KEY" in sql_statement:
             table_ddl_details.insert(
-                0,
-                table_ddl_details.pop(
-                    table_ddl_details.index(sql_statement)
-                )
+                0, table_ddl_details.pop(table_ddl_details.index(sql_statement))
             )
     table_ddl_details_str = "\n".join(table_ddl_details)
-    return u'{}\n{}'.format(table_ddl_create, table_ddl_details_str)
+    return u"{}\n{}".format(table_ddl_create, table_ddl_details_str)
 
 
 def sort_table_keys(raw_ddl):
@@ -195,27 +189,22 @@ def sort_table_keys(raw_ddl):
         basestring
     """
     lines = raw_ddl.split("\n")
-    key_lines = [
-        (l, i)
-        for i, l in enumerate(lines)
-        if l.strip().startswith("KEY")
-    ]
+    key_lines = [(l, i) for i, l in enumerate(lines) if l.strip().startswith("KEY")]
 
     if not key_lines:
         return raw_ddl
 
-    last_has_comma = key_lines[-1][0][-1] == ','
-    sorted_key_lines = sorted([
-        (l if l[-1] != ',' else l[:-1], i)
-        for l, i in key_lines
-    ])
+    last_has_comma = key_lines[-1][0][-1] == ","
+    sorted_key_lines = sorted(
+        [(l if l[-1] != "," else l[:-1], i) for l, i in key_lines]
+    )
 
     key_line_idxs = set([i for _, i in sorted_key_lines])
     for i, _ in enumerate(lines):
         if i in key_line_idxs:
             lines[i] = sorted_key_lines.pop(0)[0]
             if sorted_key_lines or last_has_comma:
-                lines[i] += ','
+                lines[i] += ","
     key_sorted_ddl = "\n".join(lines)
 
     return key_sorted_ddl
@@ -244,12 +233,12 @@ def cleanup_table_ddl(raw_ddl):
 def main():
     """The main function"""
     args = docopt(__doc__, version="ddldump. {}".format(VERSION))
-    dsn = args['<DSN>']
-    table = args['TABLE']
-    diff_file = args['--diff']
+    dsn = args["<DSN>"]
+    table = args["TABLE"]
+    diff_file = args["--diff"]
 
     # If asked to be verbose, enable the debug logging
-    if args['--verbose']:
+    if args["--verbose"]:
         logging.basicConfig(level=logging.DEBUG)
 
     # Get a connection to the database
@@ -283,7 +272,7 @@ def main():
 
     if diff_file:
         # load the content of the given file to diff
-        fh = open(diff_file, 'r')
+        fh = open(diff_file, "r")
         content = fh.read().splitlines()
         fh.close()
 
@@ -295,20 +284,19 @@ def main():
 
         # Compare it with the current state
         if content != output:
-            diff_lines = difflib.unified_diff(content,
-                                              output,
-                                              fromfile=diff_file,
-                                              tofile=db_type)
+            diff_lines = difflib.unified_diff(
+                content, output, fromfile=diff_file, tofile=db_type
+            )
             for line in diff_lines:
-                print line
+                print(line)
             return 1
 
     else:
         # Don't let python add another \n character when printing
-        if output.endswith('\n'):
+        if output.endswith("\n"):
             output = output[:-1]
 
-        print output
+        print(output)
 
 
 if __name__ == "__main__":
