@@ -29,6 +29,7 @@ import re
 import sys
 import difflib
 from subprocess import Popen, PIPE
+
 try:
     from urlparse import urlparse
 except ImportError:
@@ -39,6 +40,58 @@ import sqlalchemy
 
 from ddldump.constants import VERSION
 from past.builtins import basestring
+
+
+class Database(Base):
+    """general class for Database operations"""
+
+    self.meta = MetaData(bind=engine)
+
+    def get_tables_and_views(self):
+        """return alphabetically sorted list of tables"""
+        # TODO need this for views as well
+        information_schema_tables = Table(
+            self.information_schema_tables_name,
+            self.meta,
+            schema=self.information_schema_name,
+            autoload=True,
+        )
+
+        tables_query = select([information_schema_tables]).where(
+            self.information_schema_where(information_schema_tables)
+        )
+
+        rows = self.engine.execute(tables_query)
+
+        return sorted(
+            [row[self.information_schema_table_name_column] for row in rows.fetchall()]
+        )
+
+
+class MySQLDatabase(Database):
+    """MySQL operations"""
+
+    self.information_schema_tables_name = "TABLES"
+    self.information_schema_table_name_column = "TABLE_NAME"
+    self.information_schema_name = None
+
+    def information_schema_where(self, table):
+        """returns a where clause for looking up INFORMATION SCHEMA records for this type of database engine"""
+        return getattr(table.c, "TABLE_SCHEMA") == self.db_name
+
+
+class PostgreSQL(Database):
+    """PostgreSQL operations"""
+
+    self.information_schema_tables_name = "tables"
+    self.information_schema_table_name_column = "table_name"
+    self.information_schema_name = "information_schema"
+
+    def information_schema_where(self, table):
+        """returns a where clause for looking up INFORMATION SCHEMA records for this type of database engine"""
+        return getattr(table.c, "table_schema").notin_(
+            ["pg_catalog", "information_schema"]
+        )
 
 
 def get_db_connection(url):
@@ -69,7 +122,16 @@ def get_tables_to_dump(engine):
     inspector = sqlalchemy.inspect(engine)
     # must use SHOW TABLES in MySQL, to get list of tables and views
     # something else in PSQL
-    tables = inspector.get_table_names()
+    if engine.name == "mysql":
+        pass
+        tables = inspector.get_table_names()
+    elif engine.name == "postgresql":
+        result = engine.execute(
+            "select * from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema')"
+        )
+        tables = result.fetchall()
+
+        print(tables)
 
     return tables
 
@@ -84,6 +146,10 @@ def get_procedures(engine):
         procedure_result - engine.execute("SHOW CREATE PROCEDURE `{}`").format(row[1])
         # TODO may want to post-process procedures to eliminate  DEFINER
         procedures_ddl.append(procedure_result[2])
+
+        result = engine.execute(
+            "select * from information_schema.routines where routine_schema not in ('pg_catalog', 'information_schema')"
+        )
     return ",".join(procedures_ddl)
 
 
@@ -129,37 +195,44 @@ def _show_create_postgresql(engine, table):
     try:
         # Python 3
         ps = Popen(
-                    [
-                        'pg_dump',
-                        str(engine.url),
-                        '-t', table,
-                        '--quote-all-identifiers',
-                        '--no-owner',
-                        '--no-privileges',
-                        '--no-acl',
-                        '--no-security-labels',
-                        '--schema-only'],
-                    stdout=PIPE, text=True)
+            [
+                "pg_dump",
+                str(engine.url),
+                "-t",
+                table,
+                "--quote-all-identifiers",
+                "--no-owner",
+                "--no-privileges",
+                "--no-acl",
+                "--no-security-labels",
+                "--schema-only",
+            ],
+            stdout=PIPE,
+            text=True,
+        )
     except TypeError:
         # Python 2
         ps = Popen(
-                    [
-                        'pg_dump',
-                        str(engine.url),
-                        '-t', table,
-                        '--quote-all-identifiers',
-                        '--no-owner',
-                        '--no-privileges',
-                        '--no-acl',
-                        '--no-security-labels',
-                        '--schema-only'],
-                    stdout=PIPE)
+            [
+                "pg_dump",
+                str(engine.url),
+                "-t",
+                table,
+                "--quote-all-identifiers",
+                "--no-owner",
+                "--no-privileges",
+                "--no-acl",
+                "--no-security-labels",
+                "--schema-only",
+            ],
+            stdout=PIPE,
+        )
 
     table_ddl_details = []
     # convert bytes to string so we can use the same code between Python 2/3
     raw_output = str(ps.communicate()[0])
-    start = raw_output[raw_output.find('CREATE TABLE'):]
-    table_ddl_create = start[:start.find(';') + 1]
+    start = raw_output[raw_output.find("CREATE TABLE") :]
+    table_ddl_create = start[: start.find(";") + 1]
 
     # Separating the CREATE TABLE statement and the rest of the details
     # from pg_dump output for better manipulation.
@@ -169,34 +242,29 @@ def _show_create_postgresql(engine, table):
         None, raw_output_less_create_table.split("\n")
     )
     for op in filtered_raw_output_less_create_table:
-        if not op.startswith(
-                ('ALTER TABLE ONLY',
-                 'COPY',
-                 'SET',
-                 r'\.',
-                 '--')
-        ) and 'OWNER' not in op:
+        if (
+            not op.startswith(("ALTER TABLE ONLY", "COPY", "SET", r"\.", "--"))
+            and "OWNER" not in op
+        ):
             table_ddl_details.append(op)
 
     # ALTER TABLE ONLY + ADD CONSTRAINT come in two
     # rows with indentation.
     # Concatenating into one row.
     for idx, item in enumerate(table_ddl_details):
-        if 'ADD CONSTRAINT' in item:
-            item = 'ALTER TABLE ONLY "public"."{}" {}'.format(
-                table, item.strip()
-            )
+        if "ADD CONSTRAINT" in item:
+            item = 'ALTER TABLE ONLY "public"."{}" {}'.format(table, item.strip())
             table_ddl_details[idx] = item
 
     table_ddl_details.sort()
     # need to move SQL statements with PRIMARY KEY to front
     for sql_statement in table_ddl_details:
-        if 'PRIMARY KEY' in sql_statement:
+        if "PRIMARY KEY" in sql_statement:
             table_ddl_details.insert(
                 0, table_ddl_details.pop(table_ddl_details.index(sql_statement))
             )
     table_ddl_details_str = "\n".join(table_ddl_details)
-    return '{}\n{}'.format(table_ddl_create, table_ddl_details_str)
+    return "{}\n{}".format(table_ddl_create, table_ddl_details_str)
 
 
 def sort_table_keys(raw_ddl):
@@ -279,6 +347,7 @@ def main():
 
     # Dump each table on stdout
     first_loop = True
+    print(tables)
     for table_name in tables:
         # We want a newline between tables
         if first_loop:
