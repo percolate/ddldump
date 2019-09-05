@@ -51,3 +51,11 @@ $ ddldump --diff=cooldb.sql mysql://localhost/cooldb
 ```bash
 pip install ddldump
 ```
+
+## Upload a new version
+
+1. Set a new version in `ddldump/constants.py`
+1. Open a PR, get it reviewed, get it merged
+1. `git tag <version>`
+1. `git push --tags`
+1. `make release`
