@@ -41,6 +41,9 @@ jobs:
           name: Load ddldump postgres schema
           command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
       - run:
+          name: Install postgres driver for python
+          command: pip install psycopg2
+      - run:
           name: Package the repo into a wheel
           command: python setup.py bdist_wheel
       - run:
@@ -73,6 +76,9 @@ jobs:
       - run:
           name: Load ddldump postgres schema
           command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
+      - run:
+          name: Install postgres driver for python
+          command: pip3 install psycopg2
       - run:
           name: Package the repo into a wheel
           command: python3 setup.py bdist_wheel
@@ -109,6 +115,9 @@ jobs:
           name: Load ddldump mysql schema (with foreign key checks disabled)
           command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
       - run:
+          name: Install mysql driver for python
+          command: pip install mysqlclient
+      - run:
           name: Package the repo into a wheel
           command: python setup.py bdist_wheel
       - run:
@@ -144,6 +153,9 @@ jobs:
       - run:
           name: Load ddldump mysql schema (with foreign key checks disabled)
           command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
+      - run:
+          name: Install mysql driver for python
+          command: pip3 install mysqlclient
       - run:
           name: Package the repo into a wheel
           command: python3 setup.py bdist_wheel
