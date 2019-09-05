@@ -15,7 +15,7 @@ setup(
               'pg_dump'),
     license='GPLv3',
     packages=['ddldump'],
-    install_requires=['docopt', 'sqlalchemy', 'psycopg2', 'mysqlclient', 'future'],
+    install_requires=['docopt', 'sqlalchemy'],
     entry_points={
         'console_scripts': [
             'ddldump=ddldump.main:main',
