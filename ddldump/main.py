@@ -111,7 +111,10 @@ class MySQLDatabase(Database):
         self.meta = meta
 
     def information_schema_where(self, table):
-        """returns a where clause for looking up INFORMATION SCHEMA records for this type of database engine"""
+        """
+        generates a database engine specific where clause
+        for looking up INFORMATION SCHEMA records
+        """
         return getattr(table.c, "TABLE_SCHEMA") == self.engine.url.database
 
     def show_create(self, table):
@@ -144,7 +147,10 @@ class PostgresDatabase(Database):
         self.meta = meta
 
     def information_schema_where(self, table):
-        """returns a where clause for looking up INFORMATION SCHEMA records for this type of database engine"""
+        """
+        generates a database engine specific where clause
+        for looking up INFORMATION SCHEMA records
+        """
         return getattr(table.c, "table_schema").notin_(
             ["pg_catalog", "information_schema"]
         )
@@ -190,7 +196,7 @@ class PostgresDatabase(Database):
         table_ddl_details = []
         # convert bytes to string so we can use the same code between Python 2/3
         raw_output = str(ps.communicate()[0])
-        start = raw_output[raw_output.find("CREATE TABLE") :]
+        start = raw_output[raw_output.find("CREATE TABLE"):]
         table_ddl_create = start[: start.find(";") + 1]
 
         # Separating the CREATE TABLE statement and the rest of the details
@@ -233,6 +239,7 @@ class PostgresDatabase(Database):
         return cleanup_table_ddl(
             "{}\n{}".format(table_ddl_create, table_ddl_details_str)
         )
+
 
 def sort_table_keys(raw_ddl):
     """
