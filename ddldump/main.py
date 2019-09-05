@@ -24,6 +24,8 @@ Options:
                     in sync, e.g. during your continuous integration.
 
 """
+from __future__ import unicode_literals
+
 import logging
 import re
 import sys
@@ -40,7 +42,6 @@ from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.sql.expression import select, asc
 
 from ddldump.constants import VERSION
-from past.builtins import basestring
 
 
 class Database(object):
@@ -248,10 +249,10 @@ def sort_table_keys(raw_ddl):
     identical.
 
     Args:
-        raw_ddl (basestring)
+        raw_ddl (unicode)
 
     Returns:
-        basestring
+        unicode
     """
     lines = raw_ddl.split("\n")
     key_lines = [(l, i) for i, l in enumerate(lines) if l.strip().startswith("KEY")]
@@ -280,17 +281,17 @@ def cleanup_table_ddl(raw_ddl):
     Given a raw DDL, clean it up to remove any varying piece, like AUTOINCs.
 
     Args:
-        raw_ddl (basestring)
+        raw_ddl (unicode)
 
     Returns:
-        basestring
+        unicode
     """
-    assert isinstance(raw_ddl, basestring)
+    assert isinstance(raw_ddl, unicode)
 
     key_sorted_ddl = sort_table_keys(raw_ddl)
 
     # Removing the AUTOINC state from the CREATE TABLE
-    clean_ddl = re.sub(r" AUTO_INCREMENT=\d+", u"", key_sorted_ddl)
+    clean_ddl = re.sub(r" AUTO_INCREMENT=\d+", "", key_sorted_ddl)
 
     return clean_ddl
 
