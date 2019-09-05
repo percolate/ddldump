@@ -15,13 +15,12 @@ CREATE TABLE "public"."custom_record" (
     "deleted_at" timestamp without time zone
 );
 ALTER TABLE ONLY "public"."custom_record" ADD CONSTRAINT "custom_record_pkey" PRIMARY KEY ("id");
-ALTER TABLE ONLY "public"."custom_record" ADD CONSTRAINT "custom_record_record_fkey" FOREIGN KEY ("id") REFERENCES "public"."record"("id") ON DELETE CASCADE;
 COMMENT ON COLUMN "public"."custom_record"."id" IS 'ID of the custom record.';
 COMMENT ON COLUMN "public"."custom_record"."name" IS 'Name of the custom record.';
 COMMENT ON COLUMN "public"."custom_record"."updated_at" IS 'Time the saved query was last updated. Null if not yet updated.';
 CREATE INDEX "idx_custom_record_updated_at" ON "public"."custom_record" USING "btree" ("updated_at");
+CREATE TRIGGER "update_timestamp" BEFORE UPDATE ON "public"."custom_record" FOR EACH ROW EXECUTE PROCEDURE "public"."trigger_set_timestamp"();
 SELECT pg_catalog.set_config('search_path', '', false);
-
 
 -- Create syntax for TABLE 'record'
 CREATE TABLE "public"."record" (
@@ -45,40 +44,12 @@ CREATE INDEX "idx_record_parent_id" ON "public"."record" USING "btree" ("parent_
 CREATE INDEX "idx_record_type" ON "public"."record" USING "btree" ("type");
 SELECT pg_catalog.set_config('search_path', '', false);
 
-CREATE OR REPLACE FUNCTION public.now_utc() RETURNS timestamp AS $$
-  SELECT now() AT time zone 'utc';
-  $$ LANGUAGE sql;
+-- Create syntax for TABLE 'custom_record_view'
 
-CREATE OR REPLACE FUNCTION public.trigger_set_timestamp()
-  RETURNS TRIGGER
-  LANGUAGE plpgsql
-AS $$
-BEGIN
-  NEW.updated_at = now_utc();
-  RETURN NEW;
-END;
-$$;
-
-COMMENT ON FUNCTION public.trigger_set_timestamp() IS 'Trigger function to update updated_at column on update';
-
-DROP TRIGGER IF EXISTS update_timestamp on public.custom_record;
-
-CREATE TRIGGER update_timestamp
-  BEFORE UPDATE
-  ON public.custom_record
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.trigger_set_timestamp();
-
-CREATE OR REPLACE VIEW public.custom_record_view AS (
-  SELECT
-    c.id,
-    r.id as subject_id
-  FROM
-    public.custom_record c
-    INNER JOIN public.record r ON c.id = r.id
-  WHERE
-    r.type IN ('new', 'in_progress', 'complete')
-    AND c.deleted_at IS NULL
-);
-
-
+SELECT pg_catalog.set_config('search_path', '', false);
+CREATE VIEW "public"."custom_record_view" AS
+ SELECT "c"."id",
+    "r"."id" AS "subject_id"
+   FROM ("public"."custom_record" "c"
+     JOIN "public"."record" "r" ON (("c"."id" = "r"."id")))
+  WHERE ((("r"."type")::"text" = ANY ((ARRAY['new'::character varying, 'in_progress'::character varying, 'complete'::character varying])::"text"[])) AND ("c"."deleted_at" IS NULL));
