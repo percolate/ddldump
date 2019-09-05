@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 jobs:
 
   mdl:
@@ -8,6 +8,8 @@ jobs:
       - checkout
       - run: mdl .
 
+  # replace this with Black
+  # Until then, adding a flake8 rule to allow max line lengths of 88
   flake8:
     docker:
       - image: python:2.7
@@ -84,7 +86,7 @@ jobs:
   mysql:
     docker:
       - image: python:2.7.14-stretch
-      - imag: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
+      - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
     steps:
       - checkout
       - run:

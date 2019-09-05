@@ -7,8 +7,22 @@ COMMENT ON COLUMN "public"."alembic_version"."version_num" IS 'Migration Version
 COMMENT ON TABLE "public"."alembic_version" IS 'Track database migration versions.';
 SELECT pg_catalog.set_config('search_path', '', false);
 
--- Create syntax for TABLE 'ddldump_test'
-CREATE TABLE "public"."ddldump_test" (
+-- Create syntax for TABLE 'custom_record'
+CREATE TABLE "public"."custom_record" (
+    "id" bigint NOT NULL,
+    "name" character varying(255) NOT NULL,
+    "updated_at" timestamp without time zone DEFAULT "now"(),
+    "deleted_at" timestamp without time zone
+);
+ALTER TABLE ONLY "public"."custom_record" ADD CONSTRAINT "custom_record_pkey" PRIMARY KEY ("id");
+COMMENT ON COLUMN "public"."custom_record"."id" IS 'ID of the custom record.';
+COMMENT ON COLUMN "public"."custom_record"."name" IS 'Name of the custom record.';
+COMMENT ON COLUMN "public"."custom_record"."updated_at" IS 'Time the saved query was last updated. Null if not yet updated.';
+CREATE INDEX "idx_custom_record_updated_at" ON "public"."custom_record" USING "btree" ("updated_at");
+SELECT pg_catalog.set_config('search_path', '', false);
+
+-- Create syntax for TABLE 'record'
+CREATE TABLE "public"."record" (
     "id" bigint NOT NULL,
     "name" character varying(255) NOT NULL,
     "type" character varying(64) NOT NULL,
@@ -19,12 +33,22 @@ CREATE TABLE "public"."ddldump_test" (
     "updated_at" timestamp without time zone DEFAULT "now"(),
     "deleted_at" timestamp without time zone
 );
-ALTER TABLE ONLY "public"."ddldump_test" ADD CONSTRAINT "ddldump_test_pkey" PRIMARY KEY ("id");
-ALTER TABLE ONLY "public"."ddldump_test" ADD CONSTRAINT "ddldump_test_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "public"."ddldump_test"("id") ON DELETE CASCADE;
-COMMENT ON COLUMN "public"."ddldump_test"."id" IS 'Percoflake ID of the saved query folder.';
-COMMENT ON COLUMN "public"."ddldump_test"."name" IS 'Name of the saved query folder.';
-COMMENT ON COLUMN "public"."ddldump_test"."type" IS 'Type of the saved query folder as defined in apps.data.saved_query.constants.TYPES';
-COMMENT ON COLUMN "public"."ddldump_test"."updated_at" IS 'Time the saved query was last updated. NULL if not yet updated.';
-CREATE INDEX "idx_ddldump_test_parent_id" ON "public"."ddldump_test" USING "btree" ("parent_id");
-CREATE INDEX "idx_ddldump_test_type" ON "public"."ddldump_test" USING "btree" ("type");
+ALTER TABLE ONLY "public"."record" ADD CONSTRAINT "record_pkey" PRIMARY KEY ("id");
+ALTER TABLE ONLY "public"."record" ADD CONSTRAINT "record_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "public"."record"("id") ON DELETE CASCADE;
+COMMENT ON COLUMN "public"."record"."id" IS 'Percoflake ID of the saved query folder.';
+COMMENT ON COLUMN "public"."record"."name" IS 'Name of the saved query folder.';
+COMMENT ON COLUMN "public"."record"."type" IS 'Type of the saved query folder as defined in apps.data.saved_query.constants.TYPES';
+COMMENT ON COLUMN "public"."record"."updated_at" IS 'Time the saved query was last updated. NULL if not yet updated.';
+CREATE INDEX "idx_record_parent_id" ON "public"."record" USING "btree" ("parent_id");
+CREATE INDEX "idx_record_type" ON "public"."record" USING "btree" ("type");
 SELECT pg_catalog.set_config('search_path', '', false);
+
+-- Create syntax for TABLE 'custom_record_view'
+
+SELECT pg_catalog.set_config('search_path', '', false);
+CREATE VIEW "public"."custom_record_view" AS
+ SELECT "c"."id",
+    "r"."id" AS "subject_id"
+   FROM ("public"."custom_record" "c"
+     JOIN "public"."record" "r" ON (("c"."id" = "r"."id")))
+  WHERE ((("r"."type")::"text" = ANY (ARRAY[('new'::character varying)::"text", ('in_progress'::character varying)::"text", ('complete'::character varying)::"text"])) AND ("c"."deleted_at" IS NULL));

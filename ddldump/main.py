@@ -29,152 +29,216 @@ import re
 import sys
 import difflib
 from subprocess import Popen, PIPE
+
 try:
     from urlparse import urlparse
 except ImportError:
     from urllib.parse import urlparse
 
 from docopt import docopt
-import sqlalchemy
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.sql.expression import select, asc
 
 from ddldump.constants import VERSION
 from past.builtins import basestring
 
 
-def get_db_connection(url):
-    """
-    Args:
-        url (str)
+class Database(object):
+    """general class for Database operations"""
 
-    Returns:
-        sqlalchemy.engine.base.Engine
-    """
-    assert isinstance(url, str)
+    @classmethod
+    def from_dsn(cls, dsn_url):
+        """
+        Construct a `Database` instance from a parsed ini file section.
+        """
+        assert isinstance(dsn_url, str)
 
-    engine = sqlalchemy.create_engine(url)
+        engine = create_engine(dsn_url)
+        meta = MetaData(bind=engine)
 
-    return engine
+        if engine.name == "mysql":
+            DatabaseEngine = MySQLDatabase
+        elif engine.name == "postgresql":
+            DatabaseEngine = PostgresDatabase
+        else:
+            print("ddldump does not support the {} dialect.".format(engine.name))
+
+        return DatabaseEngine(engine, meta)
+
+    def query_information_schema(self, table_name):
+        """generates a basic query statement table in INFORMATION SCHEMA"""
+
+        information_schema_table = Table(
+            table_name, self.meta, schema=self.information_schema_name, autoload=True
+        )
+
+        return select([information_schema_table]).where(
+            self.information_schema_where(information_schema_table)
+        )
+
+    def get_tables_and_views(self):
+        """return alphabetically sorted list of tables"""
+        statement = self.query_information_schema(self.information_schema_tables)
+
+        statement = statement.order_by(
+            # Order by TABLE TYPE to make sure TABLES come first, then VIEWS
+            asc(self.information_schema_table_type),
+            # then order each group alphabetically.
+            asc(self.information_schema_table_name),
+        )
+
+        rows = self.engine.execute(statement)
+        return [
+            record[self.information_schema_table_name] for record in rows.fetchall()
+        ]
 
 
-def get_tables_to_dump(engine):
-    """
-    Args:
-        engine (sqlalchemy.engine.base.Engine)
+class MySQLDatabase(Database):
+    """MySQL operations"""
 
-    Returns:
-        list: List of table names
-    """
-    assert isinstance(engine, sqlalchemy.engine.base.Engine)
+    information_schema_name = "information_schema"
+    information_schema_views = "VIEWS"
+    information_schema_view_name = "TABLE_NAME"
+    information_schema_tables = "TABLES"
+    information_schema_table_name = "TABLE_NAME"
+    information_schema_table_type = "TABLE_TYPE"
 
-    inspector = sqlalchemy.inspect(engine)
-    tables = inspector.get_table_names()
+    def __init__(self, engine, meta):
+        """initializes"""
+        assert engine.name == "mysql"
 
-    return tables
+        self.engine = engine
+        self.meta = meta
 
+    def information_schema_where(self, table):
+        """
+        generates a database engine specific where clause
+        for looking up INFORMATION SCHEMA records
+        """
+        return getattr(table.c, "TABLE_SCHEMA") == self.engine.url.database
 
-def get_table_ddl(engine, table):
-    """
-    Args:
-        engine (sqlalchemy.engine.base.Engine)
-        table (basestring)
-
-    Returns:
-        basestring
-    """
-    assert isinstance(engine, sqlalchemy.engine.base.Engine)
-    assert isinstance(table, basestring)
-
-    table_ddl = None
-
-    if engine.name == 'mysql':
-        result = engine.execute('SHOW CREATE TABLE `{}`;'.format(table))
+    def show_create(self, table):
+        """return per-table DDL"""
+        result = self.engine.execute("SHOW CREATE TABLE `{}`;".format(table))
         row = result.first()
-        table_ddl = row[1] + ';'
-    elif engine.name == 'postgresql':
-        table_ddl = _show_create_postgresql(engine, table)
-    else:
-        print("ddldump does not support the {} dialect.".format(engine.name))
+        table_ddl = row[1] + ";"
+        # TODO for the future: add trigger look-ups here
+        # result = engine.execute("SHOW TRIGGERS LIKE `{}`;".format(table))
+        # TODO will need to make sure that before/after UPDATE/DELETE triggers
 
-    return table_ddl
+        return cleanup_table_ddl(table_ddl)
 
 
-def _show_create_postgresql(engine, table):
-    try:
-        # Python 3
-        ps = Popen(
-                    [
-                        'pg_dump',
-                        str(engine.url),
-                        '-t', table,
-                        '--quote-all-identifiers',
-                        '--no-owner',
-                        '--no-privileges',
-                        '--no-acl',
-                        '--no-security-labels',
-                        '--schema-only'],
-                    stdout=PIPE, text=True)
-    except TypeError:
-        # Python 2
-        ps = Popen(
-                    [
-                        'pg_dump',
-                        str(engine.url),
-                        '-t', table,
-                        '--quote-all-identifiers',
-                        '--no-owner',
-                        '--no-privileges',
-                        '--no-acl',
-                        '--no-security-labels',
-                        '--schema-only'],
-                    stdout=PIPE)
+class PostgresDatabase(Database):
+    """PostgreSQL operations"""
 
-    table_ddl_details = []
-    # convert bytes to string so we can use the same code between Python 2/3
-    raw_output = str(ps.communicate()[0])
-    start = raw_output[raw_output.find('CREATE TABLE'):]
-    table_ddl_create = start[:start.find(';') + 1]
+    information_schema_name = "information_schema"
+    information_schema_views = "views"
+    information_schema_view_name = "table_name"
+    information_schema_tables = "tables"
+    information_schema_table_name = "table_name"
+    information_schema_table_type = "table_type"
 
-    # Separating the CREATE TABLE statement and the rest of the details
-    # from pg_dump output for better manipulation.
-    raw_output_less_create_table = raw_output.replace(
-        table_ddl_create, ''
-    )
-    # Removing all of the empty space list members.
-    filtered_raw_output_less_create_table = filter(
-        None, raw_output_less_create_table.split('\n')
-    )
-    for op in filtered_raw_output_less_create_table:
-        if not op.startswith(
-                ('ALTER TABLE ONLY',
-                 'COPY',
-                 'SET',
-                 r'\.',
-                 '--')
-        ) and 'OWNER' not in op:
-            table_ddl_details.append(op)
+    def __init__(self, engine, meta):
+        """initializes"""
+        assert engine.name == "postgresql"
 
-    # ALTER TABLE ONLY + ADD CONSTRAINT come in two
-    # rows with indentation.
-    # Concatenating into one row.
-    for idx, item in enumerate(table_ddl_details):
-        if 'ADD CONSTRAINT' in item:
-            item = 'ALTER TABLE ONLY "public"."{}" {}'.format(
-                table, item.strip()
+        self.engine = engine
+        self.meta = meta
+
+    def information_schema_where(self, table):
+        """
+        generates a database engine specific where clause
+        for looking up INFORMATION SCHEMA records
+        """
+        return getattr(table.c, "table_schema").notin_(
+            ["pg_catalog", "information_schema"]
+        )
+
+    def show_create(self, table):
+        """generates per-table DDL"""
+        try:
+            # Python 3
+            ps = Popen(
+                [
+                    "pg_dump",
+                    str(self.engine.url),
+                    "-t",
+                    table,
+                    "--quote-all-identifiers",
+                    "--no-owner",
+                    "--no-privileges",
+                    "--no-acl",
+                    "--no-security-labels",
+                    "--schema-only",
+                ],
+                stdout=PIPE,
+                text=True,
             )
-            table_ddl_details[idx] = item
+        except TypeError:
+            # Python 2
+            ps = Popen(
+                [
+                    "pg_dump",
+                    str(self.engine.url),
+                    "-t",
+                    table,
+                    "--quote-all-identifiers",
+                    "--no-owner",
+                    "--no-privileges",
+                    "--no-acl",
+                    "--no-security-labels",
+                    "--schema-only",
+                ],
+                stdout=PIPE,
+            )
 
-    table_ddl_details.sort()
-    # need to move SQL statements with PRIMARY KEY to front
-    for sql_statement in table_ddl_details:
-        if 'PRIMARY KEY' in sql_statement:
-            table_ddl_details.insert(
-                0,
-                table_ddl_details.pop(
-                    table_ddl_details.index(sql_statement)
+        table_ddl_details = []
+        # convert bytes to string so we can use the same code between Python 2/3
+        raw_output = str(ps.communicate()[0])
+        start = raw_output[raw_output.find("CREATE TABLE"):]
+        table_ddl_create = start[: start.find(";") + 1]
+
+        # Separating the CREATE TABLE statement and the rest of the details
+        # from pg_dump output for better manipulation.
+        raw_output_less_create_table = raw_output.replace(table_ddl_create, "")
+
+        # Detect if this is a view
+        view = False
+        if raw_output_less_create_table.find("CREATE VIEW") > 0:
+            view = True
+        # Removing all of the empty space list members.
+        filtered_raw_output_less_create_table = filter(
+            None, raw_output_less_create_table.split("\n")
+        )
+        for op in filtered_raw_output_less_create_table:
+            if (
+                not op.startswith(("ALTER TABLE ONLY", "COPY", "SET", r"\.", "--"))
+                and "OWNER" not in op
+            ):
+                table_ddl_details.append(op)
+
+        # ALTER TABLE ONLY + ADD CONSTRAINT come in two
+        # rows with indentation.
+        # Concatenating into one row.
+        for idx, item in enumerate(table_ddl_details):
+            if "ADD CONSTRAINT" in item:
+                item = 'ALTER TABLE ONLY "public"."{}" {}'.format(table, item.strip())
+                table_ddl_details[idx] = item
+
+        if not view:
+            table_ddl_details.sort()
+        # need to move SQL statements with PRIMARY KEY to front
+        for sql_statement in table_ddl_details:
+            if "PRIMARY KEY" in sql_statement:
+                table_ddl_details.insert(
+                    0, table_ddl_details.pop(table_ddl_details.index(sql_statement))
                 )
-            )
-    table_ddl_details_str = "\n".join(table_ddl_details)
-    return '{}\n{}'.format(table_ddl_create, table_ddl_details_str)
+        table_ddl_details_str = "\n".join(table_ddl_details)
+
+        return cleanup_table_ddl(
+            "{}\n{}".format(table_ddl_create, table_ddl_details_str)
+        )
 
 
 def sort_table_keys(raw_ddl):
@@ -190,27 +254,22 @@ def sort_table_keys(raw_ddl):
         basestring
     """
     lines = raw_ddl.split("\n")
-    key_lines = [
-        (l, i)
-        for i, l in enumerate(lines)
-        if l.strip().startswith("KEY")
-    ]
+    key_lines = [(l, i) for i, l in enumerate(lines) if l.strip().startswith("KEY")]
 
     if not key_lines:
         return raw_ddl
 
-    last_has_comma = key_lines[-1][0][-1] == ','
-    sorted_key_lines = sorted([
-        (l if l[-1] != ',' else l[:-1], i)
-        for l, i in key_lines
-    ])
+    last_has_comma = key_lines[-1][0][-1] == ","
+    sorted_key_lines = sorted(
+        [(l if l[-1] != "," else l[:-1], i) for l, i in key_lines]
+    )
 
     key_line_idxs = set([i for _, i in sorted_key_lines])
     for i, _ in enumerate(lines):
         if i in key_line_idxs:
             lines[i] = sorted_key_lines.pop(0)[0]
             if sorted_key_lines or last_has_comma:
-                lines[i] += ','
+                lines[i] += ","
     key_sorted_ddl = "\n".join(lines)
 
     return key_sorted_ddl
@@ -239,21 +298,21 @@ def cleanup_table_ddl(raw_ddl):
 def main():
     """The main function"""
     args = docopt(__doc__, version="ddldump. {}".format(VERSION))
-    dsn = args['<DSN>']
-    table = args['TABLE']
-    diff_file = args['--diff']
+    dsn = args["<DSN>"]
+    table = args["TABLE"]
+    diff_file = args["--diff"]
 
     # If asked to be verbose, enable the debug logging
-    if args['--verbose']:
+    if args["--verbose"]:
         logging.basicConfig(level=logging.DEBUG)
 
     # Get a connection to the database
     logging.debug("Connecting to %s", dsn)
-    sqla = get_db_connection(dsn)
+    database = Database.from_dsn(dsn)
 
     # Figure out the list of tables to dump
     if not table:
-        tables = get_tables_to_dump(sqla)
+        tables = database.get_tables_and_views()
     else:
         tables = [table]
     logging.debug("Got those tables: %s", tables)
@@ -269,16 +328,14 @@ def main():
         else:
             output += "\n"
 
-        raw_ddl = get_table_ddl(sqla, table_name)
-        clean_ddl = cleanup_table_ddl(raw_ddl)
         output += "-- Create syntax for TABLE '{}'".format(table_name)
         output += "\n"
-        output += "{}".format(clean_ddl)
+        output += "{}".format(database.show_create(table_name))
         output += "\n"
 
     if diff_file:
         # load the content of the given file to diff
-        fh = open(diff_file, 'r')
+        fh = open(diff_file, "r")
         content = fh.read().splitlines()
         fh.close()
 
@@ -290,17 +347,16 @@ def main():
 
         # Compare it with the current state
         if content != output:
-            diff_lines = difflib.unified_diff(content,
-                                              output,
-                                              fromfile=diff_file,
-                                              tofile=db_type)
+            diff_lines = difflib.unified_diff(
+                content, output, fromfile=diff_file, tofile=db_type
+            )
             for line in diff_lines:
                 print(line)
             return 1
 
     else:
         # Don't let python add another \n character when printing
-        if output.endswith('\n'):
+        if output.endswith("\n"):
             output = output[:-1]
 
         print(output)
