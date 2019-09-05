@@ -286,8 +286,6 @@ def cleanup_table_ddl(raw_ddl):
     Returns:
         unicode
     """
-    assert isinstance(raw_ddl, unicode)
-
     key_sorted_ddl = sort_table_keys(raw_ddl)
 
     # Removing the AUTOINC state from the CREATE TABLE
