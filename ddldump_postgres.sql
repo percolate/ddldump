@@ -19,7 +19,6 @@ COMMENT ON COLUMN "public"."custom_record"."id" IS 'ID of the custom record.';
 COMMENT ON COLUMN "public"."custom_record"."name" IS 'Name of the custom record.';
 COMMENT ON COLUMN "public"."custom_record"."updated_at" IS 'Time the saved query was last updated. Null if not yet updated.';
 CREATE INDEX "idx_custom_record_updated_at" ON "public"."custom_record" USING "btree" ("updated_at");
-CREATE TRIGGER "update_timestamp" BEFORE UPDATE ON "public"."custom_record" FOR EACH ROW EXECUTE PROCEDURE "public"."trigger_set_timestamp"();
 SELECT pg_catalog.set_config('search_path', '', false);
 
 -- Create syntax for TABLE 'record'
@@ -52,4 +51,4 @@ CREATE VIEW "public"."custom_record_view" AS
     "r"."id" AS "subject_id"
    FROM ("public"."custom_record" "c"
      JOIN "public"."record" "r" ON (("c"."id" = "r"."id")))
-  WHERE ((("r"."type")::"text" = ANY ((ARRAY['new'::character varying, 'in_progress'::character varying, 'complete'::character varying])::"text"[])) AND ("c"."deleted_at" IS NULL));
+  WHERE ((("r"."type")::"text" = ANY (ARRAY[('new'::character varying)::"text", ('in_progress'::character varying)::"text", ('complete'::character varying)::"text"])) AND ("c"."deleted_at" IS NULL));
