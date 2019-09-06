@@ -39,4 +39,4 @@ CREATE TABLE `record_audit` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- Create syntax for TABLE 'custom_record_view'
-CREATE ALGORITHM=UNDEFINED DEFINER=`percolate`@`%` SQL SECURITY DEFINER VIEW `custom_record_view` AS (select `c`.`id` AS `id`,`r`.`id` AS `subject_id` from (`custom_record` `c` join `record` `r` on((`c`.`id` = `r`.`id`))) where ((`r`.`type` in ('new','in_progress','complete')) and isnull(`c`.`added_on`)));
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `custom_record_view` AS (select `c`.`id` AS `id`,`r`.`id` AS `subject_id` from (`custom_record` `c` join `record` `r` on((`c`.`id` = `r`.`id`))) where ((`r`.`type` in ('new','in_progress','complete')) and isnull(`c`.`added_on`)));
