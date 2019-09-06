@@ -288,8 +288,11 @@ def cleanup_table_ddl(raw_ddl):
     """
     key_sorted_ddl = sort_table_keys(raw_ddl)
 
-    # Removing the AUTOINC state from the CREATE TABLE
+    # Removing the AUTOINC state from CREATE TABLE statements
     clean_ddl = re.sub(r" AUTO_INCREMENT=\d+", "", key_sorted_ddl)
+
+    # Removing the DEFINE clause from CREATE VIEW statements
+    clean_ddl = re.sub(r" DEFINER=`\w+.*SQL", " SQL", clean_ddl)
 
     return clean_ddl
 
