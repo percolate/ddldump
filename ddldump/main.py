@@ -197,22 +197,43 @@ class PostgresDatabase(Database):
         table_ddl_details = []
         # convert bytes to string so we can use the same code between Python 2/3
         raw_output = str(ps.communicate()[0])
-        start = raw_output[raw_output.find("CREATE TABLE"):]
-        table_ddl_create = start[: start.find(";") + 1]
 
+        # Separate CREATE TABLE STATEMENT
         # Separating the CREATE TABLE statement and the rest of the details
         # from pg_dump output for better manipulation.
-        raw_output_less_create_table = raw_output.replace(table_ddl_create, "")
+        create_table_start = raw_output[raw_output.find("CREATE TABLE") :]
+        create_table_statement = create_table_start[: create_table_start.find(";") + 1]
+        raw_output_without_table = raw_output.replace(create_table_statement, "")
+
+        # Seprate CREATE SEQUENCE STATEMENTS
+        # Each table can have more than one.
+        raw_output_without_table_and_sequences = raw_output_without_table
+        create_sequence_statements_list = []
+        while raw_output_without_table_and_sequences.find("CREATE SEQUENCE") > 0:
+            create_sequence_start = raw_output_without_table_and_sequences[
+                raw_output_without_table_and_sequences.find("CREATE SEQUENCE") :
+            ]
+            create_sequence_statements_list.append(
+                create_sequence_start[: create_sequence_start.find(";") + 1]
+            )
+            raw_output_without_table_and_sequences = raw_output_without_table_and_sequences.replace(
+                create_sequence_statements_list[-1], ""
+            )
+
+        create_sequence_statements = "\n".join(create_sequence_statements_list)
 
         # Detect if this is a view
         view = False
-        if raw_output_less_create_table.find("CREATE VIEW") > 0:
+        if raw_output_without_table_and_sequences.find("CREATE VIEW") > 0:
             view = True
         # Removing all of the empty space list members.
         filtered_raw_output_less_create_table = filter(
-            None, raw_output_less_create_table.split("\n")
+            None, raw_output_without_table_and_sequences.split("\n")
         )
         for op in filtered_raw_output_less_create_table:
+            if op.startswith("ALTER TABLE ONLY") and op.find("nextval") > 0:
+                table_ddl_details.append(op)
+
             if (
                 not op.startswith(("ALTER TABLE ONLY", "COPY", "SET", r"\.", "--"))
                 and "OWNER" not in op
@@ -238,7 +259,16 @@ class PostgresDatabase(Database):
         table_ddl_details_str = "\n".join(table_ddl_details)
 
         return cleanup_table_ddl(
-            "{}\n{}".format(table_ddl_create, table_ddl_details_str)
+            "\n".join(
+                filter(
+                    None,
+                    (
+                        create_table_statement,
+                        create_sequence_statements,
+                        table_ddl_details_str,
+                    ),
+                )
+            )
         )
 
 

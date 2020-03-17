@@ -27,14 +27,31 @@ CREATE TABLE "public"."record" (
     "name" character varying(255) NOT NULL,
     "type" character varying(64) NOT NULL,
     "parent_id" bigint,
+    "chunk_id" bigint NOT NULL,
     "big_chunk" "jsonb",
     "description" "text",
     "embiggened" boolean DEFAULT false,
     "updated_at" timestamp without time zone DEFAULT "now"(),
     "deleted_at" timestamp without time zone
 );
+CREATE SEQUENCE "public"."record_chunk_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+CREATE SEQUENCE "public"."record_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 ALTER TABLE ONLY "public"."record" ADD CONSTRAINT "record_pkey" PRIMARY KEY ("id");
+ALTER SEQUENCE "public"."record_chunk_id_seq" OWNED BY "public"."record"."chunk_id";
+ALTER SEQUENCE "public"."record_id_seq" OWNED BY "public"."record"."id";
 ALTER TABLE ONLY "public"."record" ADD CONSTRAINT "record_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "public"."record"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."record" ALTER COLUMN "chunk_id" SET DEFAULT "nextval"('"public"."record_chunk_id_seq"'::"regclass");
+ALTER TABLE ONLY "public"."record" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."record_id_seq"'::"regclass");
 COMMENT ON COLUMN "public"."record"."id" IS 'Percoflake ID of the saved query folder.';
 COMMENT ON COLUMN "public"."record"."name" IS 'Name of the saved query folder.';
 COMMENT ON COLUMN "public"."record"."type" IS 'Type of the saved query folder as defined in apps.data.saved_query.constants.TYPES';
@@ -44,7 +61,6 @@ CREATE INDEX "idx_record_type" ON "public"."record" USING "btree" ("type");
 SELECT pg_catalog.set_config('search_path', '', false);
 
 -- Create syntax for TABLE 'custom_record_view'
-
 SELECT pg_catalog.set_config('search_path', '', false);
 CREATE VIEW "public"."custom_record_view" AS
  SELECT "c"."id",
