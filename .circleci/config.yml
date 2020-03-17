@@ -10,10 +10,11 @@ jobs:
 
   # replace this with Black
   # Until then, adding a flake8 rule to allow max line lengths of 88
-  #flake8:
-  #docker:
-  #- image: python:2.7
-  #steps:
+  flake8:
+    docker:
+     - image: python:2.7
+    steps:
+     - echo "done"
   #- checkout
   #- run: pip install flake8
   #- run: flake8 ddldump/
