@@ -172,7 +172,6 @@ workflows:
   phaser:
     jobs:
       - mdl
-      - flake8
       - postgres
       - postgrespython3
       - mysql
