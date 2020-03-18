@@ -169,6 +169,7 @@ workflows:
   version: 2
   phaser:
     jobs:
+      - flake8
       - mdl
       - postgres
       - postgrespython3
