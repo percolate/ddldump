@@ -131,10 +131,10 @@ jobs:
   mysqlpython3:
     docker:
       - image: ubuntu:19.04
-      - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
+      - image: circleci/mysql:latest
     steps:
       - checkout
-      - run: apt-get update && apt-get install -y python3-pip libpq-dev libmysqlclient-dev wget
+      - run: apt-get update && apt-get install -y python3-pip libpq-dev default-libmysqlclient-dev wget
       - run:
           name: Install mysql-client
           command: |
