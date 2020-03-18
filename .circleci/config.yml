@@ -3,7 +3,9 @@ version: 2.1
 commands:
   wait_for_database:
     paramaters:
-      port: integer
+      port:
+        type: integer
+        description: "Port to check"
     steps:
       - run:
           name: install dockerize
@@ -15,8 +17,10 @@ commands:
           command: dockerize -wait tcp://localhost:<< parameters.port >> -timeout 1m
   install_ddldump:
     parameters:
-      python: string
-      pip: string
+      python:
+        type: string
+      pip:
+        type: string
     steps:
       - run:
           name: Package the repo into a wheel
