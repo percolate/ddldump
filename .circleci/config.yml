@@ -52,6 +52,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install pip3
+          command: |
+            apt-get update
+            apt-get -y install python3-pip
+      - run:
           name: Install black.
           command: pip3 install black
       - run:
@@ -68,7 +73,7 @@ jobs:
           name: Install postgres dependencies.
           command: |
             apt-get update
-            apt-get -y install python2.7-dev python3-pip libpq-dev wget postgresql-client-9.6
+            apt-get -y install python2.7-dev python-pip libpq-dev wget
       - wait_for_database:
           port: 5432
       - run:
@@ -94,7 +99,7 @@ jobs:
           name: Install postgres dependencies.
           command: |
             apt-get update
-            apt-get -y install python3-pip libpq-dev wget postgresql-client-9.6
+            apt-get -y install python2.7-dev python3-pip libpq-dev wget
       - wait_for_database:
           port: 5432
       - run:
@@ -120,7 +125,7 @@ jobs:
           name: Install dependencies
           command: |
             apt-get update
-            apt-get -y install python2.7-dev python2-pip libpq-dev libssl-dev default-libmysqlclient-dev wget mysql-client
+            apt-get -y install python2.7-dev python-pip libssl-dev default-libmysqlclient-dev wget mysql-client
       - wait_for_database:
           port: 3306
       - load_mysql_ddl
@@ -144,7 +149,7 @@ jobs:
           name: Install dependencies
           command: |
             apt-get update
-            apt-get -y install python3.7-dev python3-pip libpq-dev libssl-dev default-libmysqlclient-dev wget mysql-client
+            apt-get -y install python3.7-dev python3-pip  libssl-dev default-libmysqlclient-dev wget mysql-client
       - wait_for_database:
           port: 5432
       - load_mysql_ddl
