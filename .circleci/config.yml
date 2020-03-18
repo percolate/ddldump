@@ -2,7 +2,7 @@ version: 2.1
 
 commands:
   wait_for_database:
-    paramaters:
+    parameters:
       port:
         type: integer
         description: "Port to check"
