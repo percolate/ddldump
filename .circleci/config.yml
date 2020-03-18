@@ -132,7 +132,7 @@ jobs:
       - image: circleci/mysql:latest
     steps:
       - checkout
-      - run: apt-get update && apt-get install -y python-dev python3-pip libpq-dev default-libmysqlclient-dev wget
+      - run: apt-get update && apt-get install -y python3.7-dev python3-pip libpq-dev libssl-dev default-libmysqlclient-dev wget
       - run:
           name: Install mysql-client
           command: |
