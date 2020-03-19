@@ -1,4 +1,42 @@
 version: 2.1
+
+commands:
+  wait_for_database:
+    parameters:
+      port:
+        type: integer
+        description: "Port to check"
+    steps:
+      - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+      - run:
+          name: Wait for postgres to come up
+          command: dockerize -wait tcp://localhost:<< parameters.port >> -timeout 1m
+  install_ddldump:
+    parameters:
+      python:
+        type: string
+      pip:
+        type: string
+    steps:
+      - run:
+          name: Package the repo into a wheel
+          command: << parameters.python >> setup.py bdist_wheel
+      - run:
+          name: Install the newly-packaged wheel
+          command: << parameters.pip >> install dist/*
+  load_mysql_ddl:
+    steps:
+      - run:
+          name: Set up "ddldump" database
+          command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
+      - run:
+          name: Load ddldump mysql schema (with foreign key checks disabled)
+          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
+
 jobs:
 
   mdl:
@@ -8,47 +46,45 @@ jobs:
       - checkout
       - run: mdl .
 
-  # replace this with Black
-  # Until then, adding a flake8 rule to allow max line lengths of 88
-  flake8:
+  black:
     docker:
-      - image: python:2.7
+      - image: ubuntu:19.04
     steps:
       - checkout
-      - run: pip install flake8
-      - run: flake8 ddldump/
+      - run:
+          name: Install pip3
+          command: |
+            apt-get update
+            apt-get -y install python3-pip
+      - run:
+          name: Install black.
+          command: pip3 install black
+      - run:
+          name: Run black.
+          command: black --check .
 
   postgres:
     docker:
-      - image: python:2.7.14-stretch
+      - image: ubuntu:19.04
       - image: circleci/postgres:9.6.8-alpine
     steps:
       - checkout
       - run:
-          name: Install postgresql-client
+          name: Install postgres dependencies.
           command: |
             apt-get update
-            apt-get -y install postgresql-client-9.6
-      - run:
-          name: install dockerize
-          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          environment:
-            DOCKERIZE_VERSION: v0.3.0
-      - run:
-          name: Wait for postgres to come up
-          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+            apt-get -y install python2.7-dev python-pip libpq-dev wget postgresql-client
+      - wait_for_database:
+          port: 5432
       - run:
           name: Load ddldump postgres schema
           command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
       - run:
           name: Install postgres driver for python
           command: pip install psycopg2
-      - run:
-          name: Package the repo into a wheel
-          command: python setup.py bdist_wheel
-      - run:
-          name: Install the newly-packaged wheel
-          command: pip install dist/*
+      - install_ddldump:
+          python: "python2.7"
+          pip: "pip2"
       - run:
           name: Run ddldump againt the postgres dumpfile
           command: ddldump --diff=ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
@@ -59,70 +95,46 @@ jobs:
       - image: circleci/postgres:9.6.8-alpine
     steps:
       - checkout
-      - run: apt-get update && apt-get install -y python3-pip libpq-dev libmysqlclient-dev wget
       - run:
-          name: Install postgresql-client
+          name: Install postgres dependencies.
           command: |
             apt-get update
-            apt-get -y install postgresql-client
-      - run:
-          name: install dockerize
-          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          environment:
-            DOCKERIZE_VERSION: v0.3.0
-      - run:
-          name: Wait for postgres to come up
-          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+            apt-get -y install python2.7-dev python3-pip libpq-dev wget postgresql-client
+      - wait_for_database:
+          port: 5432
       - run:
           name: Load ddldump postgres schema
           command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
       - run:
           name: Install postgres driver for python
           command: pip3 install psycopg2
-      - run:
-          name: Package the repo into a wheel
-          command: python3 setup.py bdist_wheel
-      - run:
-          name: Install the newly-packaged wheel
-          command: pip3 install dist/*
+      - install_ddldump:
+          python: "python3.7"
+          pip: "pip3"
       - run:
           name: Run ddldump againt the postgres dumpfile
           command: ddldump --diff=ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
 
   mysql:
     docker:
-      - image: python:2.7.14-stretch
-      - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
+      - image: ubuntu:19.04
+      - image: circleci/mysql:5.7.28
     steps:
       - checkout
       - run:
-          name: Install mysql-client
+          name: Install dependencies
           command: |
             apt-get update
-            apt-get -y install mysql-client
-      - run:
-          name: install dockerize
-          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          environment:
-            DOCKERIZE_VERSION: v0.3.0
-      - run:
-          name: Wait for mysql to come up
-          command: dockerize -wait tcp://localhost:3306 -timeout 1m
-      - run:
-          name: Set up "ddldump" database
-          command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
-      - run:
-          name: Load ddldump mysql schema (with foreign key checks disabled)
-          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
+            apt-get -y install python2.7-dev python-pip libssl-dev default-libmysqlclient-dev wget mysql-client
+      - wait_for_database:
+          port: 3306
+      - load_mysql_ddl
       - run:
           name: Install mysql driver for python
           command: pip install mysqlclient
-      - run:
-          name: Package the repo into a wheel
-          command: python setup.py bdist_wheel
-      - run:
-          name: Install the newly-packaged wheel
-          command: pip install dist/*
+      - install_ddldump:
+          python: "python2.7"
+          pip: "pip2"
       - run:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
@@ -130,38 +142,23 @@ jobs:
   mysqlpython3:
     docker:
       - image: ubuntu:19.04
-      - image: circleci/mysql:5.5 # 5.5 is the latest version of mysql-client available on stretch
+      - image: circleci/mysql:5.7.28
     steps:
       - checkout
-      - run: apt-get update && apt-get install -y python3-pip libpq-dev libmysqlclient-dev wget
       - run:
-          name: Install mysql-client
+          name: Install dependencies
           command: |
             apt-get update
-            apt-get -y install mysql-client
-      - run:
-          name: install dockerize
-          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          environment:
-            DOCKERIZE_VERSION: v0.3.0
-      - run:
-          name: Wait for mysql to come up
-          command: dockerize -wait tcp://localhost:3306 -timeout 1m
-      - run:
-          name: Set up "ddldump" database
-          command: mysql -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS `ddldump`'
-      - run:
-          name: Load ddldump mysql schema (with foreign key checks disabled)
-          command: ( echo "SET FOREIGN_KEY_CHECKS=0; "; cat ddldump_mysql.sql ) | mysql -h 127.0.0.1 ddldump
+            apt-get -y install python3.7-dev python3-pip  libssl-dev default-libmysqlclient-dev wget mysql-client
+      - wait_for_database:
+          port: 3306
+      - load_mysql_ddl
       - run:
           name: Install mysql driver for python
           command: pip3 install mysqlclient
-      - run:
-          name: Package the repo into a wheel
-          command: python3 setup.py bdist_wheel
-      - run:
-          name: Install the newly-packaged wheel
-          command: pip3 install dist/*
+      - install_ddldump:
+          python: "python3.7"
+          pip: "pip3"
       - run:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
@@ -170,8 +167,8 @@ workflows:
   version: 2
   phaser:
     jobs:
+      - black
       - mdl
-      - flake8
       - postgres
       - postgrespython3
       - mysql
