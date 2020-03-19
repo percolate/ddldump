@@ -205,7 +205,7 @@ class PostgresDatabase(Database):
         create_table_statement = create_table_start[: create_table_start.find(";") + 1]
         raw_output_without_table = raw_output.replace(create_table_statement, "")
 
-        # Seprate CREATE SEQUENCE STATEMENTS
+        # Separate CREATE SEQUENCE STATEMENTS
         # Each table can have more than one.
         raw_output_without_table_and_sequences = raw_output_without_table
         create_sequence_statements_list = []
