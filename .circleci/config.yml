@@ -118,7 +118,7 @@ jobs:
   mysql:
     docker:
       - image: ubuntu:19.04
-      - image: circleci/mysql:8.0.15
+      - image: circleci/mysql:8.0.16
     steps:
       - checkout
       - run:
@@ -142,7 +142,7 @@ jobs:
   mysqlpython3:
     docker:
       - image: ubuntu:19.04
-      - image: circleci/mysql:8.0.15
+      - image: circleci/mysql:8.0.16
     steps:
       - checkout
       - run:
