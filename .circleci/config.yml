@@ -136,6 +136,9 @@ jobs:
           python: "python2.7"
           pip: "pip2"
       - run:
+          name: Check sql_mode
+          command: mysql -h 127.0.0.1 -e "select @@sql_mode"
+      - run:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
 
@@ -159,6 +162,9 @@ jobs:
       - install_ddldump:
           python: "python3.7"
           pip: "pip3"
+      - run:
+          name: Check sql_mode
+          command: mysql -h 127.0.0.1 -e "select @@sql_mode"          
       - run:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
