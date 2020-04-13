@@ -164,7 +164,13 @@ jobs:
           pip: "pip3"
       - run:
           name: Check sql_mode
-          command: mysql -h 127.0.0.1 -e "select @@sql_mode"          
+          command: mysql -h 127.0.0.1 -e "select @@sql_mode"
+      - run:
+          name: Set sql_mode
+          command: mysql -h 127.0.0.1 -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
+      - run:
+          name: Check sql_mode
+          command: mysql -h 127.0.0.1 -e "select @@sql_mode"      
       - run:
           name: Run ddldump against the mysql dumpfile
           command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
