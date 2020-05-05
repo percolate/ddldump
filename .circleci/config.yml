@@ -48,7 +48,7 @@ jobs:
 
   black:
     docker:
-      - image: ubuntu:19.04
+      - image: ubuntu:20.04
     steps:
       - checkout
       - run:
@@ -65,7 +65,7 @@ jobs:
 
   postgres:
     docker:
-      - image: ubuntu:19.04
+      - image: ubuntu:20.04
       - image: circleci/postgres:9.6.8-alpine
     steps:
       - checkout
@@ -91,7 +91,7 @@ jobs:
 
   postgrespython3:
     docker:
-      - image: ubuntu:19.04
+      - image: ubuntu:20.04
       - image: circleci/postgres:9.6.8-alpine
     steps:
       - checkout
@@ -117,7 +117,7 @@ jobs:
 
   mysql:
     docker:
-      - image: ubuntu:19.04
+      - image: ubuntu:20.04
       - image: circleci/mysql:5.7.28
     steps:
       - checkout
@@ -141,7 +141,7 @@ jobs:
 
   mysqlpython3:
     docker:
-      - image: ubuntu:19.04
+      - image: ubuntu:20.04
       - image: circleci/mysql:5.7.28
     steps:
       - checkout
