@@ -73,33 +73,7 @@ jobs:
           name: Install postgres dependencies.
           command: |
             apt-get update
-            apt-get -y install python2.7-dev python-pip libpq-dev wget postgresql-client
-      - wait_for_database:
-          port: 5432
-      - run:
-          name: Load ddldump postgres schema
-          command: psql -h 127.0.0.1 -U postgres < ddldump_postgres.sql
-      - run:
-          name: Install postgres driver for python
-          command: pip install psycopg2
-      - install_ddldump:
-          python: "python2.7"
-          pip: "pip2"
-      - run:
-          name: Run ddldump againt the postgres dumpfile
-          command: ddldump --diff=ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
-
-  postgrespython3:
-    docker:
-      - image: ubuntu:20.04
-      - image: circleci/postgres:9.6.8-alpine
-    steps:
-      - checkout
-      - run:
-          name: Install postgres dependencies.
-          command: |
-            apt-get update
-            apt-get -y install python2.7-dev python3-pip libpq-dev wget postgresql-client
+            apt-get -y install python3-pip libpq-dev wget postgresql-client
       - wait_for_database:
           port: 5432
       - run:
@@ -109,37 +83,13 @@ jobs:
           name: Install postgres driver for python
           command: pip3 install psycopg2
       - install_ddldump:
-          python: "python3.7"
+          python: "python3"
           pip: "pip3"
       - run:
           name: Run ddldump againt the postgres dumpfile
           command: ddldump --diff=ddldump_postgres.sql postgresql://postgres:postgres@127.0.0.1:5432
 
   mysql:
-    docker:
-      - image: ubuntu:20.04
-      - image: circleci/mysql:5.7.28
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apt-get update
-            apt-get -y install python2.7-dev python-pip libssl-dev default-libmysqlclient-dev wget mysql-client
-      - wait_for_database:
-          port: 3306
-      - load_mysql_ddl
-      - run:
-          name: Install mysql driver for python
-          command: pip install mysqlclient
-      - install_ddldump:
-          python: "python2.7"
-          pip: "pip2"
-      - run:
-          name: Run ddldump against the mysql dumpfile
-          command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
-
-  mysqlpython3:
     docker:
       - image: ubuntu:20.04
       - image: circleci/mysql:5.7.28
@@ -157,11 +107,11 @@ jobs:
           name: Install mysql driver for python
           command: pip3 install mysqlclient
       - install_ddldump:
-          python: "python3.7"
+          python: "python3"
           pip: "pip3"
       - run:
           name: Run ddldump against the mysql dumpfile
-          command: ddldump --diff=ddldump_mysql.sql mysql://:@127.0.0.1:3306/ddldump
+          command: ddldump --diff=ddldump_mysql.sql mysql://@127.0.0.1:3306/ddldump
 
 workflows:
   version: 2
@@ -170,6 +120,4 @@ workflows:
       - black
       - mdl
       - postgres
-      - postgrespython3
       - mysql
-      - mysqlpython3
